@@ -1,0 +1,22 @@
+@import "tailwindcss";
+@import "./lovable.css";
+
+@layer base {
+  :root {
+    --primary-navy: oklch(27% .06 255);
+    --navy-light: #1A365D;
+    --teal-brand: oklch(57% .09 195);
+    --teal-light: #E6F4F4;
+    --amber-accent: #E8A33D;
+    --amber-light: #FEF7ED;
+    --surface-light: oklch(97% .004 250);
+    --surface-card: #FFFFFF;
+    --text-primary: oklch(25% .03 250);
+    --text-muted: oklch(51% .03 245);
+    --contest-green: oklch(56% .12 155);
+    --contest-green-light: oklch(95% .04 155);
+    --insurer-red: oklch(54% .18 30);
+    --insurer-red-light: oklch(95% .03 30);
+    --border-subtle: oklch(90% .008 250);
+  }
+}
