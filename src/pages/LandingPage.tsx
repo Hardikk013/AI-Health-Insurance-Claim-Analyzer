@@ -35,7 +35,7 @@ export const LandingPage: React.FC = () => {
           <span>Built for Indian Health Insurance &amp; IRDAI Rules</span>
         </div>
 
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-primary leading-[1.15]">
+        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-primary leading-[1.12]">
           Was your health insurance claim wrongly rejected?
         </h1>
 
@@ -91,17 +91,19 @@ export const LandingPage: React.FC = () => {
 
       {/* Sample Cases Preview */}
       <section className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-primary">Try a sample claim</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Explore pre-loaded cases to test the verification screen immediately.
-            </p>
+        <div className="text-center max-w-2xl mx-auto space-y-2">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-primary tracking-tight">
+            Try a sample claim
+          </h2>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            Explore pre-loaded cases to test the verification screen immediately.
+          </p>
+          <div className="pt-1">
+            <Link to="/samples" className="text-sm font-semibold text-accent hover:underline inline-flex items-center gap-1">
+              <span>View all 4 sample cases</span>
+              <ChevronRight className="size-4" />
+            </Link>
           </div>
-          <Link to="/samples" className="text-sm font-medium text-accent hover:underline flex items-center gap-1">
-            <span>All samples</span>
-            <ChevronRight className="size-4" />
-          </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -145,12 +147,12 @@ export const LandingPage: React.FC = () => {
 
       {/* 4 Supported Scope Limits */}
       <section className="rounded-xl border bg-card p-6 md:p-8 space-y-6">
-        <div>
+        <div className="text-center max-w-2xl mx-auto space-y-2">
           <span className="text-xs font-semibold text-accent uppercase tracking-wider">Scope Limits</span>
-          <h2 className="text-2xl sm:text-3xl font-bold text-primary mt-1">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-primary tracking-tight">
             Supported Rejection Categories in India
           </h2>
-          <p className="text-xs md:text-sm text-muted-foreground mt-1">
+          <p className="text-sm sm:text-base text-muted-foreground">
             ClaimFight supports individual and family floater health insurance for exactly four reasons:
           </p>
         </div>
@@ -195,9 +197,11 @@ export const LandingPage: React.FC = () => {
 
       {/* 3 Step Explainer */}
       <section className="space-y-6">
-        <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-primary">How ClaimFight works</h2>
-          <p className="text-sm text-muted-foreground mt-1">
+        <div className="text-center max-w-2xl mx-auto space-y-2">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-primary tracking-tight">
+            How ClaimFight works
+          </h2>
+          <p className="text-sm sm:text-base text-muted-foreground">
             From confusing repudiation letters to an iron-clad grievance appeal in 3 steps.
           </p>
         </div>
@@ -231,7 +235,7 @@ export const LandingPage: React.FC = () => {
 
       {/* Call to action */}
       <section className="rounded-xl border bg-secondary p-8 text-center space-y-4">
-        <h2 className="text-2xl font-semibold text-secondary-foreground">
+        <h2 className="text-3xl sm:text-4xl font-extrabold text-secondary-foreground tracking-tight">
           Don't accept an unfair claim deduction.
         </h2>
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
