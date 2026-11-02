@@ -89,39 +89,57 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 3 Step Explainer */}
+      {/* Sample Cases Preview */}
       <section className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-semibold text-primary">How ClaimFight works</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            From confusing repudiation letters to an iron-clad grievance appeal in 3 steps.
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-semibold text-primary">Try a sample claim</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Explore pre-loaded cases to test the verification screen immediately.
+            </p>
+          </div>
+          <Link to="/samples" className="text-sm font-medium text-accent hover:underline flex items-center gap-1">
+            <span>All samples</span>
+            <ChevronRight className="size-4" />
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="rounded-xl border bg-card p-5">
-            <span className="text-sm font-semibold text-accent">Step 1</span>
-            <h3 className="text-base font-semibold text-primary mt-1">Upload 3 documents</h3>
-            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-              Drop your insurer's rejection letter, policy document, and hospital discharge summary (PDF, JPG, PNG). Photos from your phone are supported.
-            </p>
-          </div>
+          {SAMPLE_CASES.slice(0, 3).map((sample) => (
+            <div
+              key={sample.id}
+              className="rounded-xl border bg-card p-5 flex flex-col justify-between hover:border-accent/50 transition-colors"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <VerdictBadge verdict={sample.verdict} size="sm" />
+                  <span className="text-xs font-mono text-muted-foreground">
+                    ₹{sample.deductedAmount.toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <h3 className="font-semibold text-base text-primary">
+                  {sample.title}
+                </h3>
+                <p className="text-xs text-muted-foreground line-clamp-3">
+                  {sample.summary}
+                </p>
+              </div>
 
-          <div className="rounded-xl border bg-card p-5">
-            <span className="text-sm font-semibold text-accent">Step 2</span>
-            <h3 className="text-base font-semibold text-primary mt-1">AI &amp; deterministic rules</h3>
-            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-              Claude extracts policy clauses while our deterministic rules engine computes active days, <TermTooltip termKey="Waiting Period">waiting periods</TermTooltip>, and <TermTooltip termKey="Proportionate Deduction">room rent deductions</TermTooltip>.
-            </p>
-          </div>
-
-          <div className="rounded-xl border bg-card p-5">
-            <span className="text-sm font-semibold text-accent">Step 3</span>
-            <h3 className="text-base font-semibold text-primary mt-1">Download appeal letters</h3>
-            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-              Receive an editable appeal to the Insurer's Grievance Redressal Officer (GRO) and an <TermTooltip termKey="Ombudsman">Ombudsman</TermTooltip> complaint outline with cited precedents.
-            </p>
-          </div>
+              <div className="mt-5 pt-3 border-t flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground font-mono">
+                  {sample.insurerName.split(' ')[0]}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleTestSample(sample.id)}
+                  className="text-xs font-semibold text-accent hover:opacity-90 inline-flex items-center gap-1"
+                >
+                  <span>Open demo</span>
+                  <ChevronRight className="size-3.5" />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -175,57 +193,39 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Sample Cases Preview */}
+      {/* 3 Step Explainer */}
       <section className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold text-primary">Try a sample claim</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Explore pre-loaded cases to test the verification screen immediately.
-            </p>
-          </div>
-          <Link to="/samples" className="text-sm font-medium text-accent hover:underline flex items-center gap-1">
-            <span>All samples</span>
-            <ChevronRight className="size-4" />
-          </Link>
+        <div>
+          <h2 className="text-2xl font-semibold text-primary">How ClaimFight works</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            From confusing repudiation letters to an iron-clad grievance appeal in 3 steps.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {SAMPLE_CASES.slice(0, 3).map((sample) => (
-            <div
-              key={sample.id}
-              className="rounded-xl border bg-card p-5 flex flex-col justify-between hover:border-accent/50 transition-colors"
-            >
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <VerdictBadge verdict={sample.verdict} size="sm" />
-                  <span className="text-xs font-mono text-muted-foreground">
-                    ₹{sample.deductedAmount.toLocaleString('en-IN')}
-                  </span>
-                </div>
-                <h3 className="font-semibold text-base text-primary">
-                  {sample.title}
-                </h3>
-                <p className="text-xs text-muted-foreground line-clamp-3">
-                  {sample.summary}
-                </p>
-              </div>
+          <div className="rounded-xl border bg-card p-5">
+            <span className="text-sm font-semibold text-accent">Step 1</span>
+            <h3 className="text-base font-semibold text-primary mt-1">Upload 3 documents</h3>
+            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+              Drop your insurer's rejection letter, policy document, and hospital discharge summary (PDF, JPG, PNG). Photos from your phone are supported.
+            </p>
+          </div>
 
-              <div className="mt-5 pt-3 border-t flex items-center justify-between">
-                <span className="text-[11px] text-muted-foreground font-mono">
-                  {sample.insurerName.split(' ')[0]}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleTestSample(sample.id)}
-                  className="text-xs font-semibold text-accent hover:opacity-90 inline-flex items-center gap-1"
-                >
-                  <span>Open demo</span>
-                  <ChevronRight className="size-3.5" />
-                </button>
-              </div>
-            </div>
-          ))}
+          <div className="rounded-xl border bg-card p-5">
+            <span className="text-sm font-semibold text-accent">Step 2</span>
+            <h3 className="text-base font-semibold text-primary mt-1">AI &amp; deterministic rules</h3>
+            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+              Claude extracts policy clauses while our deterministic rules engine computes active days, <TermTooltip termKey="Waiting Period">waiting periods</TermTooltip>, and <TermTooltip termKey="Proportionate Deduction">room rent deductions</TermTooltip>.
+            </p>
+          </div>
+
+          <div className="rounded-xl border bg-card p-5">
+            <span className="text-sm font-semibold text-accent">Step 3</span>
+            <h3 className="text-base font-semibold text-primary mt-1">Download appeal letters</h3>
+            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+              Receive an editable appeal to the Insurer's Grievance Redressal Officer (GRO) and an <TermTooltip termKey="Ombudsman">Ombudsman</TermTooltip> complaint outline with cited precedents.
+            </p>
+          </div>
         </div>
       </section>
 
