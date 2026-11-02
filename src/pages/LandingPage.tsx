@@ -29,13 +29,13 @@ export const LandingPage: React.FC = () => {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 md:py-12 space-y-16">
       {/* Hero Section */}
-      <section className="text-center max-w-3xl mx-auto space-y-5 pt-4">
+      <section className="text-center max-w-4xl mx-auto space-y-5 pt-4">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-xs font-semibold">
           <ShieldCheck className="size-3.5" />
           <span>Built for Indian Health Insurance &amp; IRDAI Rules</span>
         </div>
 
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-primary leading-tight">
+        <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-primary leading-[1.15]">
           Was your health insurance claim wrongly rejected?
         </h1>
 
@@ -93,7 +93,7 @@ export const LandingPage: React.FC = () => {
       <section className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-semibold text-primary">Try a sample claim</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-primary">Try a sample claim</h2>
             <p className="text-sm text-muted-foreground mt-0.5">
               Explore pre-loaded cases to test the verification screen immediately.
             </p>
@@ -147,7 +147,7 @@ export const LandingPage: React.FC = () => {
       <section className="rounded-xl border bg-card p-6 md:p-8 space-y-6">
         <div>
           <span className="text-xs font-semibold text-accent uppercase tracking-wider">Scope Limits</span>
-          <h2 className="text-xl md:text-2xl font-semibold text-primary mt-1">
+          <h2 className="text-2xl sm:text-3xl font-bold text-primary mt-1">
             Supported Rejection Categories in India
           </h2>
           <p className="text-xs md:text-sm text-muted-foreground mt-1">
@@ -196,7 +196,7 @@ export const LandingPage: React.FC = () => {
       {/* 3 Step Explainer */}
       <section className="space-y-6">
         <div>
-          <h2 className="text-2xl font-semibold text-primary">How ClaimFight works</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-primary">How ClaimFight works</h2>
           <p className="text-sm text-muted-foreground mt-1">
             From confusing repudiation letters to an iron-clad grievance appeal in 3 steps.
           </p>
