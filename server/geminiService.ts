@@ -130,10 +130,16 @@ export async function analyzeDocumentsWithGemini(
     throw new Error('GEMINI_API_KEY is not configured in backend environment. Please set GEMINI_API_KEY in your .env or server environment.');
   }
 
-  const primaryModel = params.model || process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-  const candidateModels = [primaryModel, 'gemini-1.5-flash', 'gemini-1.5-pro'].filter(
-    (v, i, a) => a.indexOf(v) === i
-  );
+  const primaryModel = params.model || process.env.GEMINI_MODEL || 'gemini-3.5-flash';
+  const candidateModels = [
+    primaryModel,
+    'gemini-3.5-flash',
+    'gemini-3.8-flash',
+    'gemini-flash-latest',
+    'gemini-3.5-flash-lite',
+    'gemini-3.6-flash',
+    'gemini-3.7-flash'
+  ].filter((v, i, a) => a.indexOf(v) === i);
 
   params.onStepProgress?.(1, 'Reading uploaded rejection letter, policy wording, and discharge summary using Gemini Multimodal Vision...');
 
@@ -204,11 +210,18 @@ Produce the full JSON object as described in the system directives.`;
     } catch (err: any) {
       console.warn(`Gemini call failed with model ${modelName}:`, err?.message || err);
       lastError = err;
-      // Continue to next candidate model if 404 or model not found
-      if (err?.message?.includes('not found') || err?.status === 404) {
+      // If temporary overload (503), rate-limit (429), or model not found (404), wait briefly and try next model
+      if (
+        err?.status === 503 || 
+        err?.message?.includes('high demand') || 
+        err?.status === 429 || 
+        err?.message?.includes('quota') ||
+        err?.message?.includes('not found') || 
+        err?.status === 404
+      ) {
+        await new Promise(r => setTimeout(r, 1500));
         continue;
       } else {
-        // If it's an auth error or quota error, throw directly
         throw new Error(`Gemini API Error: ${err?.message || 'Failed to analyze documents with Gemini'}`);
       }
     }
