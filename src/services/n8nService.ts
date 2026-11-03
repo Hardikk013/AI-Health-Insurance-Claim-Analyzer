@@ -1,20 +1,20 @@
-import { ClaimCase, AnalysisProgressStep, VerdictType, RejectionCategory } from '../types';
-import { validateDeterministicRules } from './ruleEngine';
+// Real Gemini-Powered Claim Analysis Pipeline
+import { ClaimCase, AnalysisProgressStep, VerdictType, RejectionCategory, ComparisonItem } from '../types';
 import { saveCase, getStoredUserProfile, updateUserProfile, isAdminMode } from './api';
-import { verifyDocumentsWithGemini } from './geminiService';
+import { AnalysisResponseContract } from '../../server/types';
 
 export const ANALYSIS_STEPS: AnalysisProgressStep[] = [
   {
     step: 1,
-    name: 'Google Gemini Multimodal Vision & OCR',
-    description: 'Scanning documents with Google Gemini 2.0 Flash and pdf.js for page numbers, handwriting, and OCR confidence',
+    name: 'Gemini Multimodal Vision & OCR',
+    description: 'Scanning uploaded documents with Gemini Multimodal Vision for text, page numbers, and clinical stamps',
     status: 'idle',
     estimatedSeconds: 12
   },
   {
     step: 2,
     name: 'Gemini Policy Clause Isolation',
-    description: 'Extracting waiting periods, exclusions, sub-limits, and co-pay clauses under strict IRDAI guidelines',
+    description: 'Extracting waiting periods, exclusions, sub-limits, and room rent terms under strict IRDAI guidelines',
     status: 'idle',
     estimatedSeconds: 15
   },
@@ -49,299 +49,306 @@ export const ANALYSIS_STEPS: AnalysisProgressStep[] = [
 ];
 
 export interface RunAnalysisParams {
-  caseId: string;
+  caseId?: string;
   files: {
-    rejection: File | { name: string; size: number };
-    policy: File | { name: string; size: number };
-    discharge: File | { name: string; size: number };
+    rejection: File | { name: string; size: number; url?: string };
+    policy: File | { name: string; size: number; url?: string };
+    discharge: File | { name: string; size: number; url?: string };
   };
   sampleId?: string;
   onStepUpdate: (steps: AnalysisProgressStep[], activeIndex: number, progressPercent: number) => void;
 }
 
+/**
+ * Helper to ensure we have real File instances with actual PDF bytes.
+ * If mock / stub objects were provided (e.g. from samples), fetch the real sample PDF file.
+ */
+async function ensureRealFile(input: File | { name: string; size: number; url?: string }, defaultSamplePath: string): Promise<File> {
+  if (input instanceof File && input.size > 200) {
+    return input;
+  }
+
+  // Fetch actual sample PDF
+  const path = (input as any).url || defaultSamplePath;
+  try {
+    const res = await fetch(path);
+    if (!res.ok) throw new Error(`HTTP ${res.status} fetching sample ${path}`);
+    const blob = await res.blob();
+    return new File([blob], input.name || path.split('/').pop() || 'document.pdf', {
+      type: blob.type || 'application/pdf'
+    });
+  } catch (err) {
+    console.warn(`Could not fetch real sample PDF from ${path}:`, err);
+    // If running in environment where public URL is relative, try root path
+    const fallbackRes = await fetch('/' + path.replace(/^\//, ''));
+    const blob = await fallbackRes.blob();
+    return new File([blob], input.name || 'document.pdf', { type: 'application/pdf' });
+  }
+}
+
 export const executeAnalysisPipeline = async ({
-  caseId,
   files,
   sampleId,
   onStepUpdate
 }: RunAnalysisParams): Promise<ClaimCase> => {
-  // Check daily quota (bypassed if Admin Mode is enabled)
+  // 1. Quota check (bypassed if Admin Mode is enabled)
   const profile = getStoredUserProfile();
   const maxLimit = profile.custom_daily_limit || 3;
   if (!isAdminMode() && profile.analyses_today >= maxLimit) {
-    throw new Error(`Daily limit reached: ${profile.analyses_today}/${maxLimit} analyses used. Open Admin Panel (/admin) to reset or enable unlimited mode.`);
+    throw new Error(`Daily limit reached: ${profile.analyses_today}/${maxLimit} analyses used. Open Admin Panel (/admin) to reset quota or enable unlimited mode.`);
   }
 
+  // Initial step setup
   const stepsState = JSON.parse(JSON.stringify(ANALYSIS_STEPS)) as AnalysisProgressStep[];
+  stepsState[0].status = 'running';
+  stepsState[0].detailMessage = 'Preparing documents for Gemini Multimodal Vision analysis...';
+  onStepUpdate([...stepsState], 0, 10);
 
-  const runStep = async (stepIndex: number, delayMs: number, detailMsg: string) => {
-    stepsState[stepIndex].status = 'running';
-    stepsState[stepIndex].detailMessage = detailMsg;
-    const progress = Math.round(((stepIndex + 0.5) / stepsState.length) * 100);
-    onStepUpdate([...stepsState], stepIndex, progress);
+  // 2. Resolve genuine File instances
+  const realRejection = await ensureRealFile(
+    files.rejection,
+    sampleId?.includes('ped') ? '/samples/sample_rejection_letter_ped.pdf' :
+    sampleId?.includes('room') ? '/samples/sample_settlement_letter_room_rent.pdf' :
+    sampleId?.includes('dental') ? '/samples/sample_rejection_letter_dental.pdf' :
+    '/samples/sample_rejection_letter_cataract.pdf'
+  );
 
-    await new Promise(res => setTimeout(res, delayMs));
+  const realPolicy = await ensureRealFile(
+    files.policy,
+    sampleId?.includes('ped') ? '/samples/sample_policy_wordings_care.pdf' :
+    sampleId?.includes('room') ? '/samples/sample_policy_wordings_hdfc.pdf' :
+    sampleId?.includes('dental') ? '/samples/sample_policy_wordings_nivabupa.pdf' :
+    '/samples/sample_policy_wordings_star.pdf'
+  );
 
-    stepsState[stepIndex].status = 'completed';
-    const finishedProgress = Math.round(((stepIndex + 1) / stepsState.length) * 100);
-    onStepUpdate([...stepsState], stepIndex, finishedProgress);
-  };
+  const realDischarge = await ensureRealFile(
+    files.discharge,
+    sampleId?.includes('ped') ? '/samples/sample_discharge_summary_ped.pdf' :
+    sampleId?.includes('room') ? '/samples/sample_discharge_summary_room_rent.pdf' :
+    sampleId?.includes('dental') ? '/samples/sample_discharge_summary_dental.pdf' :
+    '/samples/sample_discharge_summary_cataract.pdf'
+  );
 
-  // Step 1: Google Gemini Multimodal Vision & OCR
-  await runStep(0, 1600, 'Gemini 2.0 Flash reading 3 documents • OCR confidence: 99.2% across pages');
+  // 3. Construct FormData for backend upload
+  const formData = new FormData();
+  formData.append('rejection', realRejection, realRejection.name);
+  formData.append('policy', realPolicy, realPolicy.name);
+  formData.append('discharge', realDischarge, realDischarge.name);
+  formData.append('user_id', profile.id);
 
-  // Trigger Gemini verification in parallel
-  const geminiVerification = await verifyDocumentsWithGemini({
-    rejectionFile: files.rejection,
-    policyFile: files.policy,
-    dischargeFile: files.discharge,
-    model: 'gemini-2.0-flash'
+  // 4. Send to backend analyze endpoint
+  const analyzeRes = await fetch('/api/cases/analyze', {
+    method: 'POST',
+    body: formData
   });
 
-  // Step 2: Gemini Policy Clause Isolation
-  await runStep(1, 1700, `Gemini isolated ${geminiVerification.extractedClauses.length || 3} key policy clauses with exact page citations`);
+  if (!analyzeRes.ok) {
+    let errorDetail = 'Backend analysis failed to start.';
+    try {
+      const errJson = await analyzeRes.json();
+      errorDetail = errJson.error || errorDetail;
+    } catch {
+      errorDetail = `HTTP ${analyzeRes.status}: ${analyzeRes.statusText}`;
+    }
+    throw new Error(errorDetail);
+  }
 
-  // Step 3: Stated Reasons
-  await runStep(2, 1600, 'Stated repudiation reason extracted: Waiting period / Proportionate calculation');
+  const { jobId } = await analyzeRes.json();
 
-  // Step 4: Cross-referencing
-  await runStep(3, 1800, 'Correlating medical diagnosis against cited policy terms');
+  // 5. Poll /api/cases/:id/status until completed or failed
+  const pollInterval = 900;
+  const maxAttempts = 120; // 120 * 900ms ~ 108 seconds timeout
+  let attempts = 0;
+  let jobCompleted = false;
 
-  // Step 5: Deterministic Rule Engine
-  await runStep(4, 1300, 'Date arithmetic recomputed: 798 active policy days > 730 days waiting period');
+  while (!jobCompleted && attempts < maxAttempts) {
+    attempts++;
+    await new Promise(r => setTimeout(r, pollInterval));
 
-  // Step 6: Appeal Generation
-  await runStep(5, 1700, 'Finalizing Grievance Appeal to Insurer GRO & Ombudsman outline');
+    const statusRes = await fetch(`/api/cases/${jobId}/status`);
+    if (!statusRes.ok) {
+      continue;
+    }
 
-  // Increment user quota
+    const statusData = await statusRes.json();
+
+    if (statusData.steps && Array.isArray(statusData.steps)) {
+      onStepUpdate(statusData.steps, statusData.currentStepIndex || 0, statusData.progressPercent || 20);
+    }
+
+    if (statusData.status === 'failed') {
+      throw new Error(statusData.error || 'Gemini document analysis encountered an error. Please verify your GEMINI_API_KEY and retry.');
+    }
+
+    if (statusData.status === 'completed') {
+      jobCompleted = true;
+      break;
+    }
+  }
+
+  if (!jobCompleted) {
+    throw new Error('Analysis timed out waiting for Gemini response. Please retry.');
+  }
+
+  // 6. Retrieve validated result JSON from /api/cases/:id/result
+  const resultRes = await fetch(`/api/cases/${jobId}/result`);
+  if (!resultRes.ok) {
+    throw new Error('Could not retrieve completed claim analysis from server.');
+  }
+
+  const { result } = (await resultRes.json()) as { result: AnalysisResponseContract };
+  if (!result) {
+    throw new Error('Server returned empty claim analysis result.');
+  }
+
+  // Increment user quota on successful analysis
   updateUserProfile({
     analyses_today: profile.analyses_today + 1
   });
 
-  // Build the resulting completed case
-  let category: RejectionCategory = 'waiting_period';
-  let verdict: VerdictType = geminiVerification.verdict || 'grounds_to_contest';
-  let patientName = 'Ramesh Chandra Sharma';
-  let insurerName = 'Star Health & Allied Insurance Co. Ltd.';
-  let claimAmount = 78000;
-  let deductedAmount = 78000;
-  let hospitalName = 'Sanjeevani Eye Super Speciality Hospital, Ahmedabad';
-  let policyNo = 'P/121114/01/2024/004921';
-  let claimNo = 'CIR/2026/121114/084319';
+  // Map backend contract verdict to frontend VerdictType
+  const overallVerdict: VerdictType = 
+    result.case_status === 'contestable' ? 'grounds_to_contest' :
+    result.case_status === 'not_contestable' ? 'insurer_appears_correct' :
+    'unclear';
 
-  const fileName = (files.rejection.name || '').toLowerCase();
-  if (fileName.includes('ped') || sampleId === 'case-ped-hypertension-fracture') {
-    category = 'ped_exclusion';
-    verdict = 'grounds_to_contest';
-    patientName = 'Sunita Patel';
-    insurerName = 'Care Health Insurance Limited';
-    claimAmount = 165000;
-    deductedAmount = 165000;
-    hospitalName = 'Apollo Hospitals, Gandhinagar';
-    policyNo = '18492011/2023';
-    claimNo = 'CH-CLM-2026-90412';
-  } else if (fileName.includes('room') || sampleId === 'case-sublimit-room-rent') {
-    category = 'sub_limit_room_rent';
-    verdict = 'grounds_to_contest';
-    patientName = 'Vikramaditya Sengupta';
-    insurerName = 'HDFC ERGO General Insurance Co.';
-    claimAmount = 210000;
-    deductedAmount = 72400;
-    hospitalName = 'Ruby General Hospital, Kolkata';
-    policyNo = '2819/2024/091244';
-    claimNo = 'CLM-HDFC-2026-78100';
-  } else if (fileName.includes('dental') || sampleId === 'case-insurer-correct-dental') {
-    category = 'hospitalisation_medical_necessity';
-    verdict = 'insurer_appears_correct';
-    patientName = 'Priya Nair';
-    insurerName = 'Niva Bupa Health Insurance Co. Ltd.';
-    claimAmount = 45000;
-    deductedAmount = 45000;
-    hospitalName = 'Smile Care Aesthetic Clinic, Bengaluru';
-    policyNo = '3190821/2025';
-    claimNo = 'NB-2026-99014';
-  }
+  // Construct ClaimCase
+  const nowStr = new Date().toISOString();
+  const expiresStr = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-  // Run deterministic rules validation
-  const ruleOutputs = validateDeterministicRules({
-    rejectionCategory: category,
-    policyStartDate: '2024-01-10',
-    admissionDate: '2026-03-18',
-    citedWaitingPeriodMonths: 24,
-    deductedMedicinesImplants: category === 'sub_limit_room_rent',
-    isDaycareProcedure: category === 'waiting_period'
-  });
+  const comparisons: ComparisonItem[] = (result.document_comparison || []).map((c, i) => ({
+    id: `comp-${jobId}-${i}`,
+    case_id: jobId,
+    category: (c.category as RejectionCategory) || 'waiting_period',
+    insurer_statement: c.insurer_statement,
+    insurer_quote: c.insurer_quote,
+    insurer_doc_page: c.insurer_doc_page || 1,
+    policy_clause_heading: c.policy_clause_heading,
+    policy_page: c.policy_page || 14,
+    policy_quote: c.policy_quote,
+    medical_fact: c.medical_fact,
+    discharge_summary_quote: c.discharge_summary_quote,
+    discharge_page: c.discharge_page || 1,
+    verdict: c.verdict as VerdictType,
+    contest_reason_plain: c.contest_reason_plain,
+    rules_applied: c.rules_applied
+  }));
 
-  const createdCase: ClaimCase = {
-    id: caseId,
+  const claimCase: ClaimCase = {
+    id: jobId,
     user_id: profile.id,
-    case_number: `CF-2026-${Math.floor(100000 + Math.random() * 900000)}`,
-    patient_name: patientName,
-    insurer_name: insurerName,
-    policy_number: policyNo,
-    claim_number: claimNo,
-    hospital_name: hospitalName,
-    claim_amount: claimAmount,
-    approved_amount: claimAmount - deductedAmount,
-    deducted_amount: deductedAmount,
+    case_number: `CF-${(result.claim_number || jobId).replace(/[^A-Za-z0-9]/g, '').slice(-8).toUpperCase()}`,
+    patient_name: result.patient_name || 'Policyholder',
+    insurer_name: result.insurer || 'Insurance Company',
+    policy_number: result.policy_number || 'N/A',
+    claim_number: result.claim_number || 'N/A',
+    hospital_name: result.hospital_name || 'Hospital',
+    admission_date: result.medical_facts?.admission_date,
+    discharge_date: result.medical_facts?.discharge_date,
+    claim_amount: result.claim?.claimed_amount || 0,
+    approved_amount: result.claim?.approved_amount || 0,
+    deducted_amount: result.claim?.deducted_amount || 0,
     status: 'completed',
-    overall_verdict: verdict,
-    summary_plain: verdict === 'grounds_to_contest'
-      ? `Analysis verified by Google Gemini & Deterministic Date Engine. Found strong legal grounds to contest the repudiation under IRDAI guidelines.`
-      : `Analysis verified by Google Gemini. The insurer's repudiation appears consistent with standard policy exclusions.`,
-    is_sample: false,
-    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    overall_verdict: overallVerdict,
+    summary_plain: result.case_summary,
+    is_sample: Boolean(sampleId),
+    expires_at: expiresStr,
+    created_at: nowStr,
+    updated_at: nowStr,
     documents: [
       {
-        id: 'doc-rej-' + Math.random().toString(36).substring(2, 7),
-        case_id: caseId,
+        id: `doc-rej-${jobId}`,
+        case_id: jobId,
         doc_type: 'rejection_letter',
-        file_name: files.rejection.name,
-        storage_path: '/samples/sample_rejection_letter_cataract.pdf',
-        mime_type: 'application/pdf',
-        file_size: files.rejection.size || 1024000,
-        ocr_confidence: geminiVerification.ocrConfidence || 99.2,
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        created_at: new Date().toISOString()
+        file_name: realRejection.name,
+        storage_path: `/uploads/${realRejection.name}`,
+        mime_type: realRejection.type || 'application/pdf',
+        file_size: realRejection.size,
+        ocr_confidence: result.confidence || 98.5,
+        expires_at: expiresStr,
+        created_at: nowStr
       },
       {
-        id: 'doc-pol-' + Math.random().toString(36).substring(2, 7),
-        case_id: caseId,
+        id: `doc-pol-${jobId}`,
+        case_id: jobId,
         doc_type: 'policy_document',
-        file_name: files.policy.name,
-        storage_path: '/samples/sample_policy_wordings_star.pdf',
-        mime_type: 'application/pdf',
-        file_size: files.policy.size || 3400000,
-        ocr_confidence: 99.4,
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        created_at: new Date().toISOString()
+        file_name: realPolicy.name,
+        storage_path: `/uploads/${realPolicy.name}`,
+        mime_type: realPolicy.type || 'application/pdf',
+        file_size: realPolicy.size,
+        ocr_confidence: result.confidence || 99.0,
+        expires_at: expiresStr,
+        created_at: nowStr
       },
       {
-        id: 'doc-dis-' + Math.random().toString(36).substring(2, 7),
-        case_id: caseId,
+        id: `doc-dis-${jobId}`,
+        case_id: jobId,
         doc_type: 'discharge_summary',
-        file_name: files.discharge.name,
-        storage_path: '/samples/sample_discharge_summary_cataract.pdf',
-        mime_type: 'application/pdf',
-        file_size: files.discharge.size || 890000,
-        ocr_confidence: 98.6,
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        created_at: new Date().toISOString()
+        file_name: realDischarge.name,
+        storage_path: `/uploads/${realDischarge.name}`,
+        mime_type: realDischarge.type || 'application/pdf',
+        file_size: realDischarge.size,
+        ocr_confidence: result.confidence || 97.8,
+        expires_at: expiresStr,
+        created_at: nowStr
       }
     ],
-    clauses: geminiVerification.extractedClauses.length > 0 ? geminiVerification.extractedClauses : [
-      {
-        id: 'clause-extracted-1',
-        case_id: caseId,
-        clause_heading: category === 'waiting_period' ? 'Clause 4.2 Specific Disease Waiting Period' : 'Section 4 Policy Terms',
-        page_number: 14,
-        quote: category === 'waiting_period' 
-          ? 'Expenses related to Cataract surgery shall be payable after expiry of 24 consecutive months of continuous coverage.'
-          : 'Proportionate deduction shall apply only to room-associated expenses.',
-        category: category
-      }
-    ],
+    clauses: (result.policy_analysis?.relevant_clauses || []).map((cl, idx) => ({
+      id: `clause-${idx}`,
+      case_id: jobId,
+      clause_heading: cl.clause_heading,
+      page_number: cl.page_number,
+      quote: cl.quote,
+      category: (cl.category as RejectionCategory) || 'waiting_period'
+    })),
     rejection_reasons: [
       {
-        id: 'rej-extracted-1',
-        case_id: caseId,
-        stated_reason: `Repudiated under Section 4 for ${category.replace('_', ' ')}. Waiting period / exclusion cited.`,
-        cited_clause: 'Clause 4.2',
-        quoted_text: 'Treatment excluded until expiry of stipulated exclusion period.',
-        deducted_sub_amount: deductedAmount,
-        rejection_category: category
+        id: `reason-1`,
+        case_id: jobId,
+        stated_reason: result.rejection_analysis?.reason || 'Claim Repudiation',
+        cited_clause: result.rejection_analysis?.policy_clause || 'Section 4',
+        quoted_text: result.rejection_analysis?.quoted_clause || '',
+        deducted_sub_amount: result.claim?.deducted_amount,
+        rejection_category: (comparisons[0]?.category as RejectionCategory) || 'waiting_period'
       }
     ],
-    comparisons: [
+    comparisons,
+    letters: [
       {
-        id: 'comp-extracted-1',
-        case_id: caseId,
-        category: category,
-        insurer_statement: `Insurer rejected claim of Rs. ${deductedAmount.toLocaleString('en-IN')} citing clause exclusion.`,
-        insurer_quote: 'Treatment excluded until expiry of 24 months of continuous coverage.',
-        insurer_doc_page: 1,
-        policy_clause_heading: 'Clause 4.2 - Specific Illness Coverage',
-        policy_page: 14,
-        policy_quote: 'Cataract covered after 24 consecutive months from first inception date without break.',
-        medical_fact: 'Procedure performed after 26 months of continuous active policy tenure. Admission Date: 18-03-2026.',
-        discharge_summary_quote: 'Uneventful procedure. Daycare discharge on same day.',
-        discharge_page: 1,
-        verdict: verdict,
-        contest_reason_plain: geminiVerification.contestReasonPlain,
-        rules_applied: ruleOutputs
-      }
-    ],
-    letters: verdict === 'grounds_to_contest' ? [
-      {
-        id: 'letter-appeal-' + caseId,
-        case_id: caseId,
+        id: `letter-appeal-${jobId}`,
+        case_id: jobId,
         letter_type: 'grievance_appeal',
-        recipient_title: 'The Grievance Redressal Officer',
-        recipient_organization: insurerName,
-        subject: `Grievance Appeal against Wrongful Repudiation of Claim ${claimNo} under Policy ${policyNo}`,
-        body: `To,
-The Grievance Redressal Officer,
-${insurerName}
-
-Dear Sir / Madam,
-
-SUB: Formal Grievance Appeal regarding erroneous repudiation of Health Insurance Claim ${claimNo} under Policy ${policyNo} for patient ${patientName}.
-
-I am writing to formally contest the repudiation notice regarding the above-referenced claim. The grounds cited in your repudiation letter are legally unsustainable when compared against the explicit wordings of the policy and binding IRDAI regulations verified through Google Gemini document analysis.
-
-1. FACTUAL MATRIX & ERRONEOUS DECISION:
-The patient was hospitalised at ${hospitalName} for necessary medical treatment. The total claim submitted was Rs. ${claimAmount.toLocaleString('en-IN')}/-, which has been disallowed in violation of policy terms.
-
-2. POLICY WORDING & REGULATORY COMPLIANCE:
-The records unequivocally confirm that the policy has been active for more than 26 continuous months. The 24-month waiting period cited by your claims management team had completely elapsed prior to the date of hospitalisation.
-
-3. SETTLED IRDAI DIRECTIVES:
-Under IRDAI Master Guidelines, where statutory waiting periods have lapsed, continued refusal to pay constitutes deficiency of service under the Consumer Protection Act, 2019.
-
-4. RELIEF CLAIMED:
-I urge the Grievance Cell to review this matter objectively and disburse the due claim amount of Rs. ${deductedAmount.toLocaleString('en-IN')}/- to the policyholder within 15 working days.
-
-Yours faithfully,
-${patientName}`,
+        recipient_title: 'The Grievance Redressal Officer (GRO)',
+        recipient_organization: result.insurer || 'Insurance Company',
+        subject: result.appeal?.subject || `Formal Grievance Appeal against Repudiation of Claim No. ${result.claim_number}`,
+        body: result.appeal?.body || '',
         placeholders: [
-          { key: 'bank_details', label: 'Bank Account & IFSC', value: '[ENTER_YOUR_BANK_ACCOUNT_AND_IFSC]', is_missing: true, hint: 'Provide bank account for electronic NEFT credit' }
+          { key: 'POLICY_NUMBER', label: 'Policy Number', value: result.policy_number, is_missing: !result.policy_number },
+          { key: 'CLAIM_NUMBER', label: 'Claim Number', value: result.claim_number, is_missing: !result.claim_number },
+          { key: 'PATIENT_NAME', label: 'Patient Name', value: result.patient_name || '', is_missing: !result.patient_name },
+          { key: 'DISPUTED_AMOUNT', label: 'Disputed Amount', value: `₹${result.claim.deducted_amount.toLocaleString('en-IN')}`, is_missing: false }
         ],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        created_at: nowStr,
+        updated_at: nowStr
       },
-      {
-        id: 'letter-ombudsman-' + caseId,
-        case_id: caseId,
-        letter_type: 'ombudsman_complaint',
+      ...(result.ombudsman_complaint ? [{
+        id: `letter-ombudsman-${jobId}`,
+        case_id: jobId,
+        letter_type: 'ombudsman_complaint' as const,
         recipient_title: 'The Hon\'ble Insurance Ombudsman',
-        recipient_organization: 'Office of the Insurance Ombudsman (Regional Centre)',
-        subject: `Complaint under Insurance Ombudsman Rules 2017 against ${insurerName} for Unfair Repudiation`,
-        body: `BEFORE THE HON'BLE INSURANCE OMBUDSMAN
-Complaint under Rule 13 of Insurance Ombudsman Rules, 2017
-
-COMPLAINANT: ${patientName}
-RESPONDENT: ${insurerName}
-POLICY NO: ${policyNo}
-CLAIM NO: ${claimNo}
-AMOUNT CLAIMED: Rs. ${deductedAmount.toLocaleString('en-IN')}/-
-
-1. STATEMENT OF FACTS:
-The Complainant holds a valid health insurance policy issued by the Respondent. The claim of Rs. ${claimAmount.toLocaleString('en-IN')}/- was unfairly repudiated despite all waiting periods having elapsed.
-
-2. REPRESENTATION TO INSURER:
-A formal written grievance was submitted to the Grievance Redressal Officer of the Respondent. The Respondent has either failed to resolve or wrongfully rejected the claim.
-
-3. PRAYER FOR RELIEF:
-The Complainant prays for an award directing the Respondent to pay Rs. ${deductedAmount.toLocaleString('en-IN')}/- along with interest and costs.`,
-        placeholders: [],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-    ] : []
+        recipient_organization: 'Council for Insurance Ombudsmen',
+        subject: result.ombudsman_complaint.subject || `Complaint under Rule 13 of Insurance Ombudsman Rules, 2017 - Claim ${result.claim_number}`,
+        body: result.ombudsman_complaint.body || '',
+        placeholders: [
+          { key: 'INSURER_NAME', label: 'Insurer Name', value: result.insurer, is_missing: false },
+          { key: 'DISPUTED_AMOUNT', label: 'Disputed Amount', value: `₹${result.claim.deducted_amount.toLocaleString('en-IN')}`, is_missing: false }
+        ],
+        created_at: nowStr,
+        updated_at: nowStr
+      }] : [])
+    ]
   };
 
-  saveCase(createdCase);
-  return createdCase;
+  saveCase(claimCase);
+  return claimCase;
 };

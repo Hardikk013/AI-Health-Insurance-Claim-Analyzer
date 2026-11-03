@@ -16,6 +16,7 @@ import { SAMPLE_CASES } from '../data/sampleCases';
 export const NewCasePage: React.FC = () => {
   const navigate = useNavigate();
   const { user, setConsent } = useAuthStore();
+  const { setPendingFiles } = useCaseStore();
 
   const [rejectionFile, setRejectionFile] = useState<File | null>(null);
   const [policyFile, setPolicyFile] = useState<File | null>(null);
@@ -23,6 +24,7 @@ export const NewCasePage: React.FC = () => {
 
   const [consentChecked, setConsentChecked] = useState<boolean>(user?.consent_given || false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isLoadingSample, setIsLoadingSample] = useState<boolean>(false);
 
   const handleConsentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const checked = e.target.checked;
@@ -44,28 +46,40 @@ export const NewCasePage: React.FC = () => {
       return;
     }
 
-    navigate('/processing', {
-      state: {
-        files: {
-          rejection: { name: rejectionFile.name, size: rejectionFile.size },
-          policy: { name: policyFile.name, size: policyFile.size },
-          discharge: { name: dischargeFile.name, size: dischargeFile.size },
-        }
-      }
+    setPendingFiles({
+      rejection: rejectionFile,
+      policy: policyFile,
+      discharge: dischargeFile
     });
+
+    navigate('/processing');
   };
 
-  const handleLoadSample = (sampleId: string) => {
-    const sample = SAMPLE_CASES.find(s => s.id === sampleId) || SAMPLE_CASES[0];
-    const mockRej = new File(['mock content'], sample.files.rejection_letter.name, { type: 'application/pdf' });
-    const mockPol = new File(['mock content'], sample.files.policy_document.name, { type: 'application/pdf' });
-    const mockDis = new File(['mock content'], sample.files.discharge_summary.name, { type: 'application/pdf' });
-
-    setRejectionFile(mockRej);
-    setPolicyFile(mockPol);
-    setDischargeFile(mockDis);
-    setConsentChecked(true);
+  const handleLoadSample = async (sampleId: string) => {
+    setIsLoadingSample(true);
     setErrorMessage(null);
+    try {
+      const sample = SAMPLE_CASES.find(s => s.id === sampleId) || SAMPLE_CASES[0];
+      const [rBlob, pBlob, dBlob] = await Promise.all([
+        fetch(sample.files.rejection_letter.url).then(r => r.blob()),
+        fetch(sample.files.policy_document.url).then(r => r.blob()),
+        fetch(sample.files.discharge_summary.url).then(r => r.blob())
+      ]);
+
+      const realRej = new File([rBlob], sample.files.rejection_letter.name, { type: 'application/pdf' });
+      const realPol = new File([pBlob], sample.files.policy_document.name, { type: 'application/pdf' });
+      const realDis = new File([dBlob], sample.files.discharge_summary.name, { type: 'application/pdf' });
+
+      setRejectionFile(realRej);
+      setPolicyFile(realPol);
+      setDischargeFile(realDis);
+      setConsentChecked(true);
+    } catch (err) {
+      console.error('Failed to load sample documents:', err);
+      setErrorMessage('Could not load sample PDF files. Please upload your own files.');
+    } finally {
+      setIsLoadingSample(false);
+    }
   };
 
   return (

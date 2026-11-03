@@ -53,9 +53,9 @@ export const ProcessingPage: React.FC = () => {
     if (!hasStarted) {
       setHasStarted(true);
       const filesState = location.state?.files || {
-        rejection: { name: 'sample_rejection_letter_cataract.pdf', size: 1200000 },
-        policy: { name: 'sample_policy_wordings_star.pdf', size: 3400000 },
-        discharge: { name: 'sample_discharge_summary_cataract.pdf', size: 850000 }
+        rejection: { name: 'sample_rejection_letter_cataract.pdf', size: 1200000, url: '/samples/sample_rejection_letter_cataract.pdf' },
+        policy: { name: 'sample_policy_wordings_star.pdf', size: 3400000, url: '/samples/sample_policy_wordings_star.pdf' },
+        discharge: { name: 'sample_discharge_summary_cataract.pdf', size: 850000, url: '/samples/sample_discharge_summary_cataract.pdf' }
       };
 
       runAnalysis({ files: filesState })

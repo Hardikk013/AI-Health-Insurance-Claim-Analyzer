@@ -11,12 +11,14 @@ import {
   Clock,
   AlertCircle,
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  Download
 } from 'lucide-react';
 import { useCaseStore } from '../store/useCaseStore';
 import { VerdictBadge } from '../components/common/VerdictBadge';
 import { SourceViewerModal } from '../components/case/SourceViewerModal';
 import { DocumentType } from '../types';
+import { exportLetterToPdf } from '../services/exportService';
 
 export const ResultPage: React.FC = () => {
   const { activeCase } = useCaseStore();
@@ -70,6 +72,44 @@ export const ResultPage: React.FC = () => {
       quote,
       context
     });
+  };
+
+  const handleDownloadAppealPdf = () => {
+    const appealLetter = activeCase.letters?.find(l => l.letter_type === 'grievance_appeal');
+    if (!appealLetter) return;
+    exportLetterToPdf({
+      title: 'Formal Grievance Redressal Appeal',
+      recipientTitle: appealLetter.recipient_title,
+      recipientOrg: appealLetter.recipient_organization,
+      subject: appealLetter.subject,
+      body: appealLetter.body,
+      caseNumber: activeCase.case_number,
+      patientName: activeCase.patient_name,
+      policyNumber: activeCase.policy_number,
+      claimNumber: activeCase.claim_number,
+      hospitalName: activeCase.hospital_name,
+      claimAmount: activeCase.claim_amount,
+      deductedAmount: activeCase.deducted_amount,
+    }, `ClaimFight_Grievance_Appeal_${activeCase.case_number}.pdf`);
+  };
+
+  const handleDownloadOmbudsmanPdf = () => {
+    const ombLetter = activeCase.letters?.find(l => l.letter_type === 'ombudsman_complaint');
+    if (!ombLetter) return;
+    exportLetterToPdf({
+      title: 'Complaint to Insurance Ombudsman',
+      recipientTitle: ombLetter.recipient_title,
+      recipientOrg: ombLetter.recipient_organization,
+      subject: ombLetter.subject,
+      body: ombLetter.body,
+      caseNumber: activeCase.case_number,
+      patientName: activeCase.patient_name,
+      policyNumber: activeCase.policy_number,
+      claimNumber: activeCase.claim_number,
+      hospitalName: activeCase.hospital_name,
+      claimAmount: activeCase.claim_amount,
+      deductedAmount: activeCase.deducted_amount,
+    }, `ClaimFight_Ombudsman_Complaint_${activeCase.case_number}.pdf`);
   };
 
   return (
@@ -133,6 +173,24 @@ export const ResultPage: React.FC = () => {
               >
                 Draft Ombudsman complaint
               </Link>
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleDownloadAppealPdf}
+                  className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg border bg-card px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-muted/50 cursor-pointer shadow-xs"
+                >
+                  <Download className="size-3 text-accent" />
+                  <span>Appeal PDF</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadOmbudsmanPdf}
+                  className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg border bg-card px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-muted/50 cursor-pointer shadow-xs"
+                >
+                  <Download className="size-3 text-accent" />
+                  <span>Ombudsman PDF</span>
+                </button>
+              </div>
             </>
           ) : (
             <div className="rounded-lg border bg-muted/40 p-3 max-w-xs text-xs text-muted-foreground">

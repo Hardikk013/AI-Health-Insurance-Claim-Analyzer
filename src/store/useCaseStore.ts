@@ -8,6 +8,11 @@ interface CaseState {
   cases: ClaimCase[];
   activeCase: ClaimCase | null;
   activeSample: SampleCaseDefinition | null;
+  pendingFiles: {
+    rejection: File;
+    policy: File;
+    discharge: File;
+  } | null;
   analysisSteps: AnalysisProgressStep[];
   currentStepIndex: number;
   analysisProgress: number;
@@ -17,6 +22,7 @@ interface CaseState {
   // Actions
   loadCases: () => void;
   setActiveCase: (claimCase: ClaimCase | null) => void;
+  setPendingFiles: (files: { rejection: File; policy: File; discharge: File } | null) => void;
   loadSampleCase: (sampleId: string) => ClaimCase;
   runAnalysis: (params: {
     files: {
@@ -35,11 +41,16 @@ export const useCaseStore = create<CaseState>((set, get) => ({
   cases: getSavedCases(),
   activeCase: getSavedCases()[0] || null,
   activeSample: SAMPLE_CASES[0],
+  pendingFiles: null,
   analysisSteps: ANALYSIS_STEPS,
   currentStepIndex: 0,
   analysisProgress: 0,
   isAnalyzing: false,
   analysisError: null,
+
+  setPendingFiles: (files) => {
+    set({ pendingFiles: files });
+  },
 
   loadCases: () => {
     const list = getSavedCases();
@@ -165,9 +176,10 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     });
 
     try {
+      const filesToAnalyze = get().pendingFiles || params.files;
       const completedCase = await executeAnalysisPipeline({
         caseId,
-        files: params.files,
+        files: filesToAnalyze,
         sampleId: params.sampleId,
         onStepUpdate: (steps, activeIdx, progress) => {
           set({
@@ -182,7 +194,8 @@ export const useCaseStore = create<CaseState>((set, get) => ({
       set({
         activeCase: completedCase,
         isAnalyzing: false,
-        analysisProgress: 100
+        analysisProgress: 100,
+        pendingFiles: null
       });
       return completedCase;
     } catch (err: any) {

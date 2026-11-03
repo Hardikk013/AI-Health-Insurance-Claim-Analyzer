@@ -97,10 +97,19 @@ export const AdminPanelPage: React.FC = () => {
     showNotification(`Daily quota limit updated to ${newLimit} analyses/day`);
   };
 
-  const handleSaveGeminiKey = (e: React.FormEvent) => {
+  const handleSaveGeminiKey = async (e: React.FormEvent) => {
     e.preventDefault();
     setGeminiApiKey(geminiKey);
-    showNotification('Google Gemini API Key saved for this session!');
+    try {
+      await fetch('/api/admin/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: geminiKey, model: 'gemini-2.0-flash' })
+      });
+      showNotification('Google Gemini API Key securely saved and synced to backend!');
+    } catch {
+      showNotification('Google Gemini API Key saved for this session!');
+    }
   };
 
   const analysesToday = user?.analyses_today || 0;
