@@ -3,18 +3,18 @@ import { SampleCaseDefinition } from '../types';
 export const SAMPLE_CASES: SampleCaseDefinition[] = [
   {
     id: 'case-waiting-period-cataract',
-    title: 'Cataract Surgery - Waiting Period Miscalculation',
-    subtitle: 'Insurer wrongly claimed 24-month waiting period was not completed',
+    title: 'Cataract Surgery - Waiting Period & Continuity Credit Verification',
+    subtitle: '578-day tenure verified against 24-mo waiting period after applying 12-mo continuity credit',
     category: 'waiting_period',
     verdict: 'grounds_to_contest',
     claimAmount: 78000,
     deductedAmount: 78000,
     patientName: 'Ramesh Chandra Sharma',
     insurerName: 'Star Health & Allied Insurance Co. Ltd.',
-    policyNumber: 'P/121114/01/2024/004921',
+    policyNumber: 'P/121114/01/2025/004921',
     claimNumber: 'CIR/2026/121114/084319',
     hospitalName: 'Sanjeevani Eye Super Speciality Hospital, Ahmedabad',
-    summary: 'The insurer rejected the cataract claim stating Clause 4.2 requires a 24-month waiting period. However, policy inception was 10 Jan 2024 and hospitalisation was 18 March 2026 (26 months active). The waiting period had completely elapsed.',
+    summary: 'The insurer rejected the cataract claim stating Clause 4.2 requires a 24-month waiting period and tenure is only 578 days. However, Clause 8 records a 12-month continuity credit from previous coverage. Deducting 12 months leaves a remaining waiting period of 12 months (365 days). Because active tenure is 578 days, the waiting period appears to have elapsed, provided continuity credit is substantiated with a portability certificate.',
     files: {
       rejection_letter: {
         name: 'sample_rejection_letter_cataract.pdf',
@@ -37,7 +37,7 @@ export const SAMPLE_CASES: SampleCaseDefinition[] = [
         {
           id: 'reason-1',
           case_id: 'case-waiting-period-cataract',
-          stated_reason: 'Claim repudiated under Section 4.2 (Specific Illness Waiting Period). Cataract treatment is subject to 24 consecutive months waiting period from policy inception.',
+          stated_reason: 'Claim repudiated under Section 4.2 (Specific Disease Waiting Period). Cataract treatment is subject to 24 consecutive months waiting period. Inception: 01-Jan-2025, Admission: 02-Aug-2026 (578 days active).',
           cited_clause: 'Clause 4.2 - Specified Disease/Procedure Waiting Period',
           quoted_text: 'Expenses related to the treatment of Cataract shall be excluded until the expiry of 24 months of continuous coverage.',
           deducted_sub_amount: 78000,
@@ -50,7 +50,15 @@ export const SAMPLE_CASES: SampleCaseDefinition[] = [
           case_id: 'case-waiting-period-cataract',
           clause_heading: 'Clause 4.2 Specific Disease Waiting Period (b) Cataract',
           page_number: 14,
-          quote: 'Expenses related to Cataract surgery shall be payable after expiry of 24 consecutive months of continuous coverage from policy inception date.',
+          quote: 'Expenses related to the treatment of Cataract surgery shall be payable after expiry of 24 consecutive months of continuous coverage from first inception date without break.',
+          category: 'waiting_period'
+        },
+        {
+          id: 'clause-2',
+          case_id: 'case-waiting-period-cataract',
+          clause_heading: 'Clause 8 - Portability and Continuity Credit',
+          page_number: 18,
+          quote: 'Continuity credit recorded: 12 months from prior policy period is recognized towards specific disease waiting periods under IRDAI Portability Guidelines.',
           category: 'waiting_period'
         }
       ],
@@ -60,55 +68,74 @@ export const SAMPLE_CASES: SampleCaseDefinition[] = [
           case_id: 'case-waiting-period-cataract',
           rejection_reason_id: 'reason-1',
           category: 'waiting_period',
-          insurer_statement: 'Repudiated under Clause 4.2 for Cataract within 24 months of policy inception.',
-          insurer_quote: 'Cataract treatment excluded until expiry of 24 months of continuous coverage.',
+          source_document: 'sample_rejection_letter_cataract.pdf',
+          insurer_statement: 'Repudiated under Clause 4.2 for Cataract surgery within 24 months (tenure 578 days from 01-Jan-2025).',
+          insurer_quote: 'Expenses related to the treatment of Cataract shall be excluded until the expiry of 24 months of continuous coverage.',
           insurer_doc_page: 1,
-          policy_clause_heading: 'Clause 4.2 - Specific Waiting Period (24 Months)',
+          policy_clause_heading: 'Clause 4.2 & Clause 8 (Continuity Credit Applied)',
           policy_page: 14,
-          policy_quote: 'Cataract surgery covered after 24 consecutive months from first inception date without break.',
-          medical_fact: 'Phacoemulsification with Foldable Monofocal Intraocular Lens (IOL) in Right Eye. Admission: 18-03-2026. Discharge: 18-03-2026.',
-          discharge_summary_quote: 'Diagnosis: Senile Immature Cataract OD. Procedure: Uneventful Phacoemulsification with IOL implantation.',
+          policy_quote: 'Continuity credit recorded: 12 months from prior policy period is recognized towards specific disease waiting periods.',
+          medical_fact: 'Senile Immature Cataract OD. Uneventful Micro-Incision Phacoemulsification with IOL. Admission: 02-08-2026. Discharge: 02-08-2026.',
+          discharge_summary_quote: 'Diagnosis: Senile Immature Cataract OD (Right Eye). Procedure Performed: Uneventful Micro-Incision Phacoemulsification with Foldable Monofocal Intraocular Lens (IOL).',
           discharge_page: 1,
+          extracted_value: '578 days tenure vs 365 days net waiting period (24 mo - 12 mo credit)',
+          verification_status: 'verified',
           verdict: 'grounds_to_contest',
-          contest_reason_plain: 'The waiting period you were rejected under is 24 months. Your policy incepted on 10 January 2024 and admission was on 18 March 2026. Your policy was continuously active for 26 months and 8 days. The waiting period had completely elapsed.',
+          contest_reason_plain: 'Your policy incepted on 01 January 2025 and admission was on 02 August 2026, totaling 578 active days (~19 months). The standard exclusion is 24 months, but Clause 8 records 12 months of continuity credit from your prior coverage. Deducting this credit leaves a remaining waiting period of 12 months (365 days). Because your 578 active days exceeds the remaining 365 days, the waiting period appears to have elapsed.',
           rules_applied: [
             {
-              rule_code: 'WAITING_PERIOD_ELAPSED',
-              rule_title: 'IRDAI Waiting Period Deterministic Verification',
+              rule_code: 'IRDAI_WAITING_PERIOD_ELAPSED',
+              rule_title: 'Waiting Period Completion Verification (with Continuity Credit)',
               passed: true,
-              explanation: 'Deterministic date engine confirms 798 days (26.2 months) between inception and surgery, exceeding the 730 days (24 months) threshold.'
+              explanation: 'Policy duration of 578 active policy days exceeds the net remaining waiting period of 365 days (24 months standard minus 12 months recorded continuity credit). Note: Portability certificate must be enclosed to substantiate credit.',
+              authority: 'IRDAI Health Insurance Portability & Waiting Period Directives',
+              source_url: 'https://irdai.gov.in',
+              last_verified: '2026-11-01'
+            },
+            {
+              rule_code: 'OMBUDSMAN_RULE_17_LIMIT',
+              rule_title: 'Insurance Ombudsman Rule 17 Statutory Award Limit Check',
+              passed: true,
+              explanation: 'Disputed relief of ₹78,000 is well within the statutory award limit of ₹30,00,000 under Rule 17(1) of Insurance Ombudsman Rules 2017.',
+              authority: 'Rule 17(1) & Rule 14(3), Insurance Ombudsman Rules, 2017 (Amended 2021)',
+              source_url: 'https://www.cioins.co.in/HowToApproach',
+              last_verified: '2026-11-01'
             }
           ]
         }
       ],
       letters: {
         appeal: {
-          subject: 'Grievance Appeal against Wrongful Repudiation of Claim CIR/2026/121114/084319 - Cataract Surgery Waiting Period Elapsed',
+          subject: 'Grievance Appeal against Wrongful Repudiation of Claim CIR/2026/121114/084319 - Cataract Waiting Period Elapsed with Continuity Credit',
           body: `To,
 The Grievance Redressal Officer,
 Star Health & Allied Insurance Co. Ltd.
 
 Dear Sir / Madam,
 
-SUB: Formal Grievance Representation against erroneous repudiation of Health Insurance Claim No. CIR/2026/121114/084319 under Policy No. P/121114/01/2024/004921.
+SUB: Formal Grievance Representation against erroneous repudiation of Health Insurance Claim No. CIR/2026/121114/084319 under Policy No. P/121114/01/2025/004921.
 
-I am writing to formally appeal against the repudiation letter dated 25th March 2026, wherein my claim for Cataract surgery of patient Ramesh Chandra Sharma amounting to Rs. 78,000/- was rejected citing Clause 4.2 (24-Month Waiting Period).
+I am writing to formally appeal against the repudiation notice dated 10th August 2026, wherein my claim for Cataract surgery of patient Ramesh Chandra Sharma amounting to Rs. 78,000/- was rejected citing Clause 4.2 (24-Month Waiting Period).
 
 1. FACTUAL MATRIX & ERRONEOUS REJECTION:
-The patient underwent uneventful Right Eye Phacoemulsification with Intraocular Lens (IOL) implantation on 18th March 2026 at Sanjeevani Eye Super Speciality Hospital. The claim was submitted along with complete itemized bills and discharge summary.
+The patient underwent uneventful Right Eye Phacoemulsification with Intraocular Lens (IOL) implantation on 02 August 2026 at Sanjeevani Eye Super Speciality Hospital. The claim was submitted along with complete itemized bills and discharge summary.
 
-2. POLICY ELAPSED DURATION DETERMINISTIC PROOF:
-Your repudiation letter incorrectly states that the 24-month waiting period was not fulfilled.
-• Original Policy Inception Date: 10th January 2024 (Continuous coverage renewed without break)
-• Date of Hospitalisation & Procedure: 18th March 2026
-• Total Active Period: 26 months and 8 days (798 days)
-Since 26 months exceeds the stipulated 24 months (730 days), Clause 4.2 has ceased to apply.
+2. POLICY TENURE & RECORDED CONTINUITY CREDIT:
+Your repudiation letter calculates policy duration as 578 days from inception (01-01-2025) to admission (02-08-2026), but ignores the recorded 12-month continuity credit under Clause 8 of our policy:
+• Policy Inception Date: 01 January 2025
+• Hospital Admission Date: 02 August 2026
+• Active Policy Tenure: 578 days (~19 months)
+• Standard Waiting Period: 24 months (730 days)
+• Recorded Continuity Credit: 12 months (365 days)
+• Net Remaining Waiting Period: 12 months (365 days)
 
-3. LEGAL & REGULATORY POSITION:
-Under IRDAI Master Guidelines on Health Insurance, insurers cannot deny legitimate claims where the statutory waiting period has elapsed. Continued denial constitutes deficiency in service under Consumer Protection Act 2019.
+Because actual tenure of 578 days exceeds the remaining 365 days, the waiting period had fully elapsed prior to hospitalisation. I enclose the Portability Certificate from the previous insurer confirming 12 months continuous prior coverage.
+
+3. LEGAL POSITION:
+Under IRDAI Health Insurance Portability Guidelines, continuity benefits must be accorded towards waiting periods. Repudiation without accounting for recorded continuity credit constitutes deficiency of service.
 
 4. RELIEF SOUGHT:
-I request immediate reconsideration and disbursement of the full claim amount of Rs. 78,000/- to my registered bank account within 15 days, failing which I will escalate this matter to the IRDAI Bima Bharosa Portal and the Insurance Ombudsman, Ahmedabad Centre.
+I request immediate settlement and disbursement of the full claim amount of Rs. 78,000/- within 15 days, failing which this dispute will be escalated to the Insurance Ombudsman under Rule 13 of the Insurance Ombudsman Rules, 2017.
 
 Thanking you,
 
@@ -120,23 +147,26 @@ Ramesh Chandra Sharma`,
           ]
         },
         ombudsman: {
-          subject: 'Complaint under Insurance Ombudsman Rules 2017 against Star Health for Repudiation of Cataract Claim despite 26 Months Active Policy',
+          subject: 'Complaint under Rule 13 of Insurance Ombudsman Rules 2017 against Star Health for Repudiation of Cataract Claim - Waiting Period Elapsed',
           body: `BEFORE THE HON'BLE INSURANCE OMBUDSMAN (CENTRE: AHMEDABAD)
 Complaint under Rule 13(1)(b) of Insurance Ombudsman Rules, 2017
 
 COMPLAINANT: Ramesh Chandra Sharma
 RESPONDENT: Star Health & Allied Insurance Co. Ltd.
-POLICY NO: P/121114/01/2024/004921
+POLICY NO: P/121114/01/2025/004921
 CLAIM NO: CIR/2026/121114/084319
 RELIEF CLAIMED: Rs. 78,000/- with statutory interest
 
 1. STATEMENT OF FACTS:
-The Complainant purchased the Family Health Optima policy with inception from 10th January 2024. On 18th March 2026, the Complainant underwent Cataract surgery incurring Rs. 78,000/-.
+The Complainant holds policy P/121114/01/2025/004921 with inception date 01-Jan-2025 and 12 months recorded continuity credit. On 02-Aug-2026 (578 days active), the Complainant underwent cataract surgery incurring Rs. 78,000/-.
 
-2. GRIEVANCE SUBMITTED TO INSURER:
-Grievance was lodged with the Insurer Grievance Redressal Officer. The insurer failed to rectify the arithmetic error that 26 months of continuous coverage is greater than the 24 months exclusion period.
+2. ARITHMETIC ERROR & CONTINUITY CREDIT:
+The insurer repudiated the claim citing 24 months waiting period, overlooking that deducting 12 months continuity credit leaves a net waiting period of 365 days, which 578 days of active tenure fully satisfies.
 
-3. PRAYER / RELIEF:
+3. JURISDICTION & LIMITS:
+The relief claimed (Rs. 78,000/-) is well within the Ombudsman's statutory award limit of Rs. 30,00,000/- under Rule 17(1). Representation was submitted to the insurer's GRO on 12-Aug-2026 and 30 days have elapsed without resolution.
+
+4. PRAYER:
 Award the full claim amount of Rs. 78,000/- along with penal interest under IRDAI Protection of Policyholders Interests Regulations.`,
           placeholders: []
         }

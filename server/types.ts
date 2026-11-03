@@ -22,6 +22,7 @@ export type VerdictType =
 
 export interface DocumentComparisonItem {
   category: string;
+  source_document?: string;
   insurer_statement: string;
   insurer_quote?: string;
   insurer_doc_page?: number;
@@ -31,6 +32,8 @@ export interface DocumentComparisonItem {
   medical_fact: string;
   discharge_summary_quote?: string;
   discharge_page?: number;
+  extracted_value?: string;
+  verification_status?: 'verified' | 'unverified' | 'missing_evidence';
   verdict: VerdictType;
   contest_reason_plain: string;
   rules_applied?: Array<{
@@ -38,7 +41,23 @@ export interface DocumentComparisonItem {
     rule_title: string;
     passed: boolean;
     explanation: string;
+    authority?: string;
+    source_url?: string;
+    last_verified?: string;
   }>;
+}
+
+export interface OmbudsmanLegalVerification {
+  relief_sought_amount: number;
+  statutory_award_limit: number; // ₹30,00,000 under Rule 17(1) of Insurance Ombudsman Rules 2017
+  is_within_award_limit: boolean;
+  gro_representation_required: boolean;
+  thirty_day_wait_required: boolean;
+  one_year_limitation_verified: boolean;
+  no_concurrent_court_litigation: boolean;
+  official_citation: string;
+  last_verified: string;
+  rule_explanation: string;
 }
 
 export interface AnalysisResponseContract {
@@ -53,6 +72,7 @@ export interface AnalysisResponseContract {
   claim: {
     claimed_amount: number;
     approved_amount: number;
+    rejected_amount: number;
     deducted_amount: number;
     disputed_amount: number;
   };
@@ -62,9 +82,12 @@ export interface AnalysisResponseContract {
     policy_clause: string;
     finding: string;
     contestable: boolean;
+    source_document?: string;
+    page_number?: number;
   };
   policy_analysis: {
     waiting_period_days: number | null;
+    continuity_credit_recorded_months?: number | null;
     applicable_exclusions: string[];
     room_rent_limit: string | null;
     co_payment: string | null;
@@ -73,6 +96,8 @@ export interface AnalysisResponseContract {
       page_number: number;
       quote: string;
       category?: string;
+      source_document?: string;
+      verification_status?: 'verified' | 'unverified' | 'missing_evidence';
     }>;
   };
   medical_facts: {
@@ -80,15 +105,25 @@ export interface AnalysisResponseContract {
     procedure: string;
     admission_date: string;
     discharge_date: string;
+    source_document?: string;
+    page_number?: number;
+    clinical_nexus_summary?: string;
   };
   date_verification: {
     policy_start_date: string | null;
     policy_end_date: string | null;
     hospitalization_date: string | null;
     active_policy_days: number | null;
+    standard_waiting_period_days: number | null;
+    continuity_credit_months?: number | null;
+    continuity_credit_days?: number | null;
+    continuity_credit_verified?: boolean;
+    remaining_waiting_period_days?: number | null;
     waiting_period_completed: boolean | null;
     calculation_explanation: string;
+    missing_portability_documents?: string[];
   };
+  ombudsman_verification: OmbudsmanLegalVerification;
   document_comparison: DocumentComparisonItem[];
   supporting_evidence: string[];
   contradictions: string[];

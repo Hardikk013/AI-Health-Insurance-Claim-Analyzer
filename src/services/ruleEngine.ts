@@ -1,5 +1,5 @@
 // ClaimFight Deterministic Rule Engine
-// Implements deterministic recomputations of dates, waiting periods, moratorium, and room rent proportionate deductions
+// Implements deterministic recomputations of dates, waiting periods, continuity credits, moratorium, and room rent proportionate deductions
 
 export interface RuleValidationInput {
   policyStartDate?: string;
@@ -7,12 +7,15 @@ export interface RuleValidationInput {
   dischargeDate?: string;
   rejectionCategory: string;
   citedWaitingPeriodMonths?: number;
+  continuityCreditMonths?: number;
+  hasPortabilityProof?: boolean;
   continuousCoverageMonths?: number;
   roomRentEligibilityPerDay?: number;
   actualRoomRentPerDay?: number;
   isDaycareProcedure?: boolean;
   procedureName?: string;
   deductedMedicinesImplants?: boolean;
+  disputedAmount?: number;
 }
 
 export interface RuleValidationResult {
@@ -22,22 +25,70 @@ export interface RuleValidationResult {
   explanation: string;
   authority: string;
   source_url: string;
+  last_verified?: string;
+}
+
+export function parseFlexibleDate(dateStr: string | null | undefined): Date | null {
+  if (!dateStr) return null;
+  const clean = dateStr.trim();
+  
+  if (/^\d{4}-\d{2}-\d{2}/.test(clean)) {
+    const direct = new Date(clean);
+    if (!isNaN(direct.getTime())) return direct;
+  }
+
+  const parts = clean.split(/[-/.\s]+/);
+  if (parts.length >= 3) {
+    if (parts[0].length === 4) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const d = parseInt(parts[2], 10);
+      const res = new Date(y, m, d);
+      if (!isNaN(res.getTime())) return res;
+    }
+    
+    if (parts[2].length === 4) {
+      const d = parseInt(parts[0], 10);
+      let m = parseInt(parts[1], 10) - 1;
+      const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+      const monthMatch = monthNames.findIndex(mn => parts[1].toLowerCase().startsWith(mn));
+      if (monthMatch !== -1) {
+        m = monthMatch;
+      }
+      const y = parseInt(parts[2], 10);
+      const res = new Date(y, m, d);
+      if (!isNaN(res.getTime())) return res;
+    }
+  }
+
+  const fallback = new Date(clean);
+  if (!isNaN(fallback.getTime()) && fallback.getFullYear() > 1990) {
+    return fallback;
+  }
+
+  return null;
 }
 
 export function validateDeterministicRules(input: RuleValidationInput): RuleValidationResult[] {
   const results: RuleValidationResult[] = [];
 
-  // 1. Waiting Period Date Recomputation
+  // 1. Waiting Period Date Recomputation (with Continuity Credit)
   if (input.rejectionCategory === 'waiting_period' && input.policyStartDate && input.admissionDate) {
-    const start = new Date(input.policyStartDate);
-    const admission = new Date(input.admissionDate);
+    const start = parseFlexibleDate(input.policyStartDate);
+    const admission = parseFlexibleDate(input.admissionDate);
     
-    // Calculate difference in months and days
-    const diffTime = admission.getTime() - start.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    const diffMonths = Math.floor(diffDays / 30.4375);
+    if (start && admission) {
+      // Calculate difference in months and days
+      const diffTime = admission.getTime() - start.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      const diffMonths = Math.floor(diffDays / 30.4375);
 
-    const requiredMonths = input.citedWaitingPeriodMonths || 24;
+    const standardMonths = input.citedWaitingPeriodMonths || 24;
+    const standardDays = Math.round(standardMonths * 30.4375);
+    const creditMonths = input.continuityCreditMonths || 0;
+    const creditDays = Math.round(creditMonths * 30.4375);
+    const remainingMonths = Math.max(0, standardMonths - creditMonths);
+    const remainingDays = Math.max(0, standardDays - creditDays);
 
     if (diffDays < 0) {
       results.push({
@@ -46,26 +97,52 @@ export function validateDeterministicRules(input: RuleValidationInput): RuleVali
         passed: false,
         explanation: 'The admission date is prior to the policy start date.',
         authority: 'IRDAI Guidelines',
-        source_url: 'https://irdai.gov.in'
+        source_url: 'https://irdai.gov.in',
+        last_verified: '2026-11-01'
       });
-    } else if (diffMonths >= requiredMonths) {
+    } else if (creditMonths > 0) {
+      if (diffDays >= remainingDays) {
+        results.push({
+          rule_code: 'WAITING_PERIOD_ELAPSED_WITH_CONTINUITY',
+          rule_title: 'Waiting Period Verified Elapsed with Continuity Credit',
+          passed: true,
+          explanation: `Policy tenure is ${diffDays} active days (~${diffMonths} months) from inception to admission. Standard exclusion is ${standardMonths} months (${standardDays} days). Applying the recorded ${creditMonths}-month continuity credit reduces required waiting period to ${remainingMonths} months (${remainingDays} days). Because ${diffDays} days exceeds ${remainingDays} days, the waiting period appears to have elapsed. (Note: Portability certificate must be enclosed to confirm credit validity).`,
+          authority: 'IRDAI Health Insurance Portability Guidelines & Clause 8',
+          source_url: 'https://irdai.gov.in',
+          last_verified: '2026-11-01'
+        });
+      } else {
+        results.push({
+          rule_code: 'WAITING_PERIOD_ACTIVE',
+          rule_title: 'Waiting Period Active Status',
+          passed: false,
+          explanation: `Even after applying ${creditMonths} months continuity credit, remaining waiting period is ${remainingMonths} months (${remainingDays} days). Current policy active duration of ${diffDays} days is insufficient.`,
+          authority: 'IRDAI Waiting Period Standardisation Regulations',
+          source_url: 'https://irdai.gov.in',
+          last_verified: '2026-11-01'
+        });
+      }
+    } else if (diffMonths >= standardMonths) {
       results.push({
         rule_code: 'WAITING_PERIOD_ELAPSED',
         rule_title: 'Specific Illness Waiting Period Deterministic Verification',
         passed: true,
-        explanation: `The waiting period cited by insurer is ${requiredMonths} months (${requiredMonths * 30} days). However, your policy was continuously active for ${diffMonths} months (${diffDays} days) before hospitalisation. The waiting period had already elapsed.`,
+        explanation: `The waiting period cited by insurer is ${standardMonths} months (${standardDays} days). However, your policy was continuously active for ${diffMonths} months (${diffDays} days) before hospitalisation. The waiting period had already elapsed.`,
         authority: 'IRDAI Health Insurance Portability & Waiting Period Guidelines',
-        source_url: 'https://irdai.gov.in'
+        source_url: 'https://irdai.gov.in',
+        last_verified: '2026-11-01'
       });
     } else {
       results.push({
         rule_code: 'WAITING_PERIOD_ACTIVE',
         rule_title: 'Waiting Period Active Status',
         passed: false,
-        explanation: `Your policy was active for ${diffMonths} months, which is less than the required ${requiredMonths} months waiting period.`,
-        authority: 'IRDAI Waiting Period Standardisation',
-        source_url: 'https://irdai.gov.in'
+        explanation: `Your policy was active for ${diffMonths} months (${diffDays} days), which is less than the required ${standardMonths} months waiting period.`,
+        authority: 'IRDAI Waiting Period Standardisation Regulations',
+        source_url: 'https://irdai.gov.in',
+        last_verified: '2026-11-01'
       });
+    }
     }
   }
 
@@ -77,9 +154,10 @@ export function validateDeterministicRules(input: RuleValidationInput): RuleVali
         rule_code: 'PED_MORATORIUM_PERIOD',
         rule_title: 'IRDAI 60-Month Moratorium Period Rule',
         passed: true,
-        explanation: `Under the IRDAI Master Circular (2024), after 60 continuous months of coverage, no health insurance claim can be contested on grounds of non-disclosure or pre-existing diseases, unless deliberate fraud is proven.`,
+        explanation: 'Under the IRDAI Master Circular (2024), after 60 continuous months of coverage, no health insurance claim can be contested on grounds of non-disclosure or pre-existing diseases, unless deliberate fraud is proven.',
         authority: 'IRDAI Master Circular on Protection of Policyholders Interests 2024',
-        source_url: 'https://irdai.gov.in'
+        source_url: 'https://irdai.gov.in',
+        last_verified: '2026-11-01'
       });
     }
   }
@@ -91,34 +169,28 @@ export function validateDeterministicRules(input: RuleValidationInput): RuleVali
         rule_code: 'ROOM_RENT_PROPORTIONATE_DEDUCTION',
         rule_title: 'Proportionate Deduction Restriction on Non-Associated Medical Costs',
         passed: true,
-        explanation: `The insurer made proportionate deductions across medical bills. Under IRDAI Circular Ref: IRDAI/HLT/REG/CIR/194/07/2020, insurers cannot apply proportionate deductions to medicines, medical devices, implants, diagnostic investigations, or ICU charges even if a higher room category was chosen.`,
-        authority: 'IRDAI Master Circular on Health Insurance Deductions',
-        source_url: 'https://irdai.gov.in'
+        explanation: 'The insurer made proportionate deductions across medical bills. Under IRDAI Circular Ref: IRDAI/HLT/REG/CIR/194/07/2020, insurers cannot apply proportionate deductions to medicines, medical devices, implants, diagnostic investigations, or ICU charges even if a higher room category was chosen.',
+        authority: 'IRDAI Master Circular Ref: IRDAI/HLT/REG/CIR/194/07/2020',
+        source_url: 'https://irdai.gov.in',
+        last_verified: '2026-11-01'
       });
     }
   }
 
-  // 4. Daycare Procedure 24-Hour Stay Exemption
-  if (input.rejectionCategory === 'hospitalisation_medical_necessity') {
-    const commonDaycareProcedures = [
-      'cataract', 'chemotherapy', 'radiotherapy', 'hemodialysis',
-      'lithotripsy', 'tonsillectomy', 'arthroscopy', 'endoscopy',
-      'coronary angiography', 'tympanoplasty', 'nasal surgery'
-    ];
-    
-    const procLower = (input.procedureName || '').toLowerCase();
-    const isStandardDaycare = input.isDaycareProcedure || commonDaycareProcedures.some(p => procLower.includes(p));
-
-    if (isStandardDaycare) {
-      results.push({
-        rule_code: 'DAYCARE_PROCEDURE_EXEMPTION',
-        rule_title: 'Day Care Procedure 24-Hour Stay Exemption',
-        passed: true,
-        explanation: `The rejection cites failure to complete 24 hours of hospitalisation. However, modern medical technology permits ${input.procedureName || 'this procedure'} to be performed in under 24 hours. IRDAI standard guidelines mandate coverage for listed Day Care procedures without requiring an overnight stay.`,
-        authority: 'IRDAI Standardisation of Health Insurance Terms',
-        source_url: 'https://irdai.gov.in'
-      });
-    }
+  // 4. Insurance Ombudsman Rule 17 Statutory Award Limit Check
+  if (input.disputedAmount) {
+    const isUnder30L = input.disputedAmount <= 3000000;
+    results.push({
+      rule_code: 'OMBUDSMAN_RULE_17_LIMIT',
+      rule_title: 'Insurance Ombudsman Rule 17 Financial Award Limit Verification',
+      passed: isUnder30L,
+      explanation: isUnder30L
+        ? `Disputed relief of ₹${input.disputedAmount.toLocaleString('en-IN')} is within the Ombudsman's statutory compensation limit of ₹30,00,000 (Thirty Lakh Rupees) under Rule 17(1) of Insurance Ombudsman Rules 2017 (Amended 2021). You are eligible to file after representing to the insurer's GRO and waiting 30 days.`
+        : `Disputed relief of ₹${input.disputedAmount.toLocaleString('en-IN')} exceeds the Ombudsman's ₹30 Lakh award ceiling under Rule 17(1). This dispute must be filed before the State/National Consumer Commission.`,
+      authority: 'Rule 17(1) & Rule 14(3), Insurance Ombudsman Rules 2017 (Amended 2021)',
+      source_url: 'https://www.cioins.co.in/HowToApproach',
+      last_verified: '2026-11-01'
+    });
   }
 
   return results;

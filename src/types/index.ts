@@ -70,6 +70,7 @@ export interface ComparisonItem {
   case_id: string;
   rejection_reason_id?: string;
   category: RejectionCategory;
+  source_document?: string;
   insurer_statement: string;
   insurer_quote?: string;
   insurer_doc_page?: number;
@@ -79,6 +80,8 @@ export interface ComparisonItem {
   medical_fact: string;
   discharge_summary_quote?: string;
   discharge_page?: number;
+  extracted_value?: string;
+  verification_status?: 'verified' | 'unverified' | 'missing_evidence';
   verdict: VerdictType;
   contest_reason_plain: string; // 10th-grade reading level explanation
   missing_info?: string[];
@@ -87,6 +90,9 @@ export interface ComparisonItem {
     rule_title: string;
     passed: boolean;
     explanation: string;
+    authority?: string;
+    source_url?: string;
+    last_verified?: string;
   }[];
 }
 
@@ -136,7 +142,9 @@ export interface ClaimCase {
   discharge_date?: string;
   claim_amount: number;
   approved_amount: number;
+  rejected_amount?: number;
   deducted_amount: number;
+  disputed_amount?: number;
   status: CaseStatus;
   overall_verdict: VerdictType;
   summary_plain?: string;
@@ -149,6 +157,10 @@ export interface ClaimCase {
   rejection_reasons?: StatedRejectionReason[];
   comparisons?: ComparisonItem[];
   letters?: GeneratedLetter[];
+  date_verification?: any;
+  ombudsman_verification?: any;
+  missing_information?: string[];
+  warnings?: string[];
 }
 
 export interface SampleCaseDefinition {
@@ -158,7 +170,10 @@ export interface SampleCaseDefinition {
   category: RejectionCategory;
   verdict: VerdictType;
   claimAmount: number;
+  approvedAmount?: number;
+  rejectedAmount?: number;
   deductedAmount: number;
+  disputedAmount?: number;
   patientName: string;
   insurerName: string;
   policyNumber: string;

@@ -79,8 +79,44 @@ export const useCaseStore = create<CaseState>((set, get) => ({
       claim_number: sample.claimNumber,
       hospital_name: sample.hospitalName,
       claim_amount: sample.claimAmount,
-      approved_amount: sample.claimAmount - sample.deductedAmount,
+      approved_amount: sample.approvedAmount ?? (sample.claimAmount - sample.deductedAmount),
+      rejected_amount: sample.rejectedAmount ?? (sample.deductedAmount === sample.claimAmount ? sample.claimAmount : 0),
       deducted_amount: sample.deductedAmount,
+      disputed_amount: sample.disputedAmount ?? sample.deductedAmount,
+      date_verification: sample.id === 'case-waiting-period-cataract' ? {
+        policy_start_date: '2025-01-01',
+        policy_end_date: '2026-12-31',
+        hospitalization_date: '2026-08-02',
+        active_policy_days: 578,
+        standard_waiting_period_days: 730,
+        continuity_credit_months: 12,
+        continuity_credit_days: 365,
+        continuity_credit_verified: false,
+        remaining_waiting_period_days: 365,
+        waiting_period_completed: true,
+        calculation_explanation: 'Current policy tenure is 578 active days (~19 months) from inception (01 January 2025) to admission (02 August 2026). Without continuity credit, 152 days would remain under the standard 24-month exclusion. However, with the recorded 12-month continuity credit, the required waiting period is reduced to 12 months (365 days). Because actual tenure of 578 days exceeds the remaining 365 days, the waiting period appears to have elapsed. NOTE: Continuity credit is not automatically valid without verification. The previous insurer\'s portability certificate or renewal schedule must be enclosed.',
+        missing_portability_documents: [
+          'Portability Certificate / Previous Policy Schedule confirming 12-month continuity credit (Required to substantiate continuity benefit under IRDAI Portability Guidelines)'
+        ]
+      } : undefined,
+      ombudsman_verification: {
+        relief_sought_amount: sample.disputedAmount ?? sample.deductedAmount,
+        statutory_award_limit: 3000000,
+        is_within_award_limit: (sample.disputedAmount ?? sample.deductedAmount) <= 3000000,
+        gro_representation_required: true,
+        thirty_day_wait_required: true,
+        one_year_limitation_verified: true,
+        no_concurrent_court_litigation: true,
+        official_citation: 'Rule 17(1) & Rule 14(3), Insurance Ombudsman Rules, 2017 (Amended 2021)',
+        last_verified: '2026-11-01',
+        rule_explanation: 'The relief sought is within the Insurance Ombudsman\'s maximum statutory award limit of ₹30,00,000 under Rule 17(1).'
+      },
+      missing_information: sample.id === 'case-waiting-period-cataract' ? [
+        'Portability Certificate / Previous Policy Schedule confirming 12-month continuity credit'
+      ] : [],
+      warnings: sample.id === 'case-waiting-period-cataract' ? [
+        'Portability certificate missing: recorded continuity credit must be verified with prior policy schedule.'
+      ] : [],
       status: 'completed',
       overall_verdict: sample.verdict,
       summary_plain: sample.summary,

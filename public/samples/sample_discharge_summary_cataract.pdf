@@ -46,7 +46,7 @@ BT
 11.5 TL
 0.357 0.42 0.478 rg
 50. 723.8899999999999864 Td
-(IPD No: SANJ-2026-8812 | Admission & Discharge Date: 18-03-2026) Tj
+(IPD No: SANJ-2026-8812 | Admission & Discharge Date: 02-08-2026) Tj
 ET
 0.89 0.91 0.94 RG
 1. w
@@ -65,8 +65,8 @@ BT
 10.9249999999999989 TL
 0.106 0.153 0.2 rg
 50. 671.8899999999999864 Td
-(Patient Name: Mr. Ramesh Chandra Sharma | Age: 54 Years | Gender: Male | Admission: 18-03-2026 08:30 AM |) Tj
-T* (Discharge: 18-03-2026 05:00 PM \(Day Care Surgery\).) Tj
+(Patient Name: Mr. Ramesh Chandra Sharma | Age: 54 Years | Gender: Male | Admission: 02-08-2026 08:30 AM |) Tj
+T* (Discharge: 02-08-2026 05:00 PM \(Day Care Surgery\).) Tj
 ET
 BT
 /F2 11 Tf
@@ -278,7 +278,7 @@ endobj
 19 0 obj
 <<
 /Producer (jsPDF 4.2.1)
-/CreationDate (D:20261101214528+05'30')
+/CreationDate (D:20261103232313+05'30')
 >>
 endobj
 20 0 obj
@@ -317,7 +317,7 @@ trailer
 /Size 21
 /Root 20 0 R
 /Info 19 0 R
-/ID [ <5E728D742EEFD7D44C097180E699C32F> <5E728D742EEFD7D44C097180E699C32F> ]
+/ID [ <58A851D603DA5C9A988AD663C9BB35A3> <58A851D603DA5C9A988AD663C9BB35A3> ]
 >>
 startxref
 4698

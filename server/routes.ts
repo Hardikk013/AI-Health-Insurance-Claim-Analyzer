@@ -67,11 +67,19 @@ router.get('/health', (_req: Request, res: Response) => {
  */
 router.post(
   '/cases/analyze',
-  upload.fields([
-    { name: 'rejection', maxCount: 1 },
-    { name: 'policy', maxCount: 1 },
-    { name: 'discharge', maxCount: 1 }
-  ]),
+  (req: Request, res: Response, next: express.NextFunction) => {
+    upload.fields([
+      { name: 'rejection', maxCount: 1 },
+      { name: 'policy', maxCount: 1 },
+      { name: 'discharge', maxCount: 1 }
+    ])(req, res, (err) => {
+      if (err) {
+        res.status(400).json({ error: err.message || 'File upload error' });
+        return;
+      }
+      next();
+    });
+  },
   async (req: Request, res: Response): Promise<void> => {
     try {
       const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;

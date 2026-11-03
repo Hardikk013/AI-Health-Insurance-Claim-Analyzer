@@ -112,52 +112,52 @@ const samples = [
   {
     filename: 'sample_rejection_letter_cataract.pdf',
     title: 'Claim Repudiation Notice - CIR/2026/121114/084319',
-    subtitle: 'Date of Letter: 25-03-2026 | Insured: Ramesh Chandra Sharma',
+    subtitle: 'Date of Letter: 10-08-2026 | Insured: Ramesh Chandra Sharma',
     organization: 'Star Health & Allied Insurance Co. Ltd.',
     sections: [
       {
         heading: 'Repudiation Decision',
-        content: 'We regret to inform you that upon scrutinising claim CIR/2026/121114/084319 for Cataract surgery of Right Eye under Policy P/121114/01/2024/004921, the competent authority has repudiated the claim under Section 4.2.'
+        content: 'We regret to inform you that upon scrutinising claim CIR/2026/121114/084319 for Cataract surgery of Right Eye under Policy P/121114/01/2025/004921, the competent authority has repudiated the claim under Section 4.2.'
       },
       {
         heading: 'Grounds Cited by Insurer',
-        content: 'Clause 4.2 specifies that expenses related to the treatment of Cataract shall be excluded until the expiry of 24 months of continuous coverage. Based on our claims adjudication record, the waiting period has not elapsed. Hence claim of Rs. 78,000/- stands repudiated.'
+        content: 'Clause 4.2 specifies that expenses related to the treatment of Cataract shall be excluded until the expiry of 24 months of continuous coverage. Policy inception date is 01 January 2025 and admission date is 02 August 2026, representing policy tenure of 578 days. Based on our adjudication record, the 24-month waiting period has not elapsed. Hence claim of Rs. 78,000/- stands repudiated in full.'
       },
       {
-        heading: 'Appellate Channel',
-        content: 'If not satisfied, you may represent your grievance to the Grievance Redressal Officer at gro@starhealth.in within 30 days.'
+        heading: 'Appellate Channel & Ombudsman',
+        content: 'If not satisfied, you may represent your grievance to the Grievance Redressal Officer at gro@starhealth.in within 30 days. Under Rule 17(1) of Insurance Ombudsman Rules 2017, the Ombudsman may entertain complaints up to an award ceiling of Rs. 30 Lakhs.'
       }
     ]
   },
   {
     filename: 'sample_policy_wordings_star.pdf',
-    title: 'Health Insurance Policy Terms & Conditions (Excerpts)',
-    subtitle: 'Policy No: P/121114/01/2024/004921 | Inception Date: 10-01-2024',
+    title: 'Health Insurance Policy Terms & Schedule (Excerpts)',
+    subtitle: 'Policy No: P/121114/01/2025/004921 | Inception Date: 01-01-2025',
     organization: 'Star Health & Allied Insurance Co. Ltd.',
     sections: [
       {
         heading: 'Clause 1 - Policy Inception and Continuous Coverage',
-        content: 'This policy commenced on 10th January 2024. Renewal without interruption carries continuity benefits for all waiting periods served.'
+        content: 'This policy commenced on 01 January 2025. Renewal without interruption carries continuity benefits for all waiting periods served.'
       },
       {
         heading: 'Clause 4.2 - Specific Disease / Procedure Waiting Period',
         content: 'Expenses related to the treatment of Cataract surgery shall be payable after expiry of 24 consecutive months of continuous coverage from first inception date without break.'
       },
       {
-        heading: 'Clause 8 - Portability and Regulatory Directives',
-        content: 'Continuity credit shall be accorded for pre-existing disease waiting periods and specified disease waiting periods in accordance with IRDAI Health Insurance Regulations.'
+        heading: 'Clause 8 - Portability and Continuity Credit',
+        content: 'Continuity credit recorded: 12 months from prior policy period is recognized towards specific disease waiting periods under IRDAI Portability Guidelines, subject to submission of prior insurer portability certificate.'
       }
     ]
   },
   {
     filename: 'sample_discharge_summary_cataract.pdf',
     title: 'Hospital Discharge Summary - Department of Ophthalmology',
-    subtitle: 'IPD No: SANJ-2026-8812 | Admission & Discharge Date: 18-03-2026',
+    subtitle: 'IPD No: SANJ-2026-8812 | Admission & Discharge Date: 02-08-2026',
     organization: 'Sanjeevani Eye Super Speciality Hospital, Ahmedabad',
     sections: [
       {
         heading: 'Patient Particulars',
-        content: 'Patient Name: Mr. Ramesh Chandra Sharma | Age: 54 Years | Gender: Male | Admission: 18-03-2026 08:30 AM | Discharge: 18-03-2026 05:00 PM (Day Care Surgery).'
+        content: 'Patient Name: Mr. Ramesh Chandra Sharma | Age: 54 Years | Gender: Male | Admission: 02-08-2026 08:30 AM | Discharge: 02-08-2026 05:00 PM (Day Care Surgery).'
       },
       {
         heading: 'Clinical Diagnosis & Operative Note',

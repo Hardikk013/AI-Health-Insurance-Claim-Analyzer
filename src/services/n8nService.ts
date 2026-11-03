@@ -220,6 +220,7 @@ export const executeAnalysisPipeline = async ({
     id: `comp-${jobId}-${i}`,
     case_id: jobId,
     category: (c.category as RejectionCategory) || 'waiting_period',
+    source_document: c.source_document || realRejection.name,
     insurer_statement: c.insurer_statement,
     insurer_quote: c.insurer_quote,
     insurer_doc_page: c.insurer_doc_page || 1,
@@ -229,6 +230,8 @@ export const executeAnalysisPipeline = async ({
     medical_fact: c.medical_fact,
     discharge_summary_quote: c.discharge_summary_quote,
     discharge_page: c.discharge_page || 1,
+    extracted_value: c.extracted_value,
+    verification_status: c.verification_status || 'verified',
     verdict: c.verdict as VerdictType,
     contest_reason_plain: c.contest_reason_plain,
     rules_applied: c.rules_applied
@@ -247,7 +250,13 @@ export const executeAnalysisPipeline = async ({
     discharge_date: result.medical_facts?.discharge_date,
     claim_amount: result.claim?.claimed_amount || 0,
     approved_amount: result.claim?.approved_amount || 0,
+    rejected_amount: result.claim?.rejected_amount ?? (result.claim?.approved_amount === 0 ? result.claim?.claimed_amount : 0),
     deducted_amount: result.claim?.deducted_amount || 0,
+    disputed_amount: result.claim?.disputed_amount ?? (result.claim?.rejected_amount || result.claim?.deducted_amount || result.claim?.claimed_amount),
+    date_verification: result.date_verification,
+    ombudsman_verification: result.ombudsman_verification,
+    missing_information: result.missing_information || [],
+    warnings: result.warnings || [],
     status: 'completed',
     overall_verdict: overallVerdict,
     summary_plain: result.case_summary,
@@ -299,7 +308,9 @@ export const executeAnalysisPipeline = async ({
       clause_heading: cl.clause_heading,
       page_number: cl.page_number,
       quote: cl.quote,
-      category: (cl.category as RejectionCategory) || 'waiting_period'
+      category: (cl.category as RejectionCategory) || 'waiting_period',
+      source_document: cl.source_document || realPolicy.name,
+      verification_status: cl.verification_status || 'verified'
     })),
     rejection_reasons: [
       {
@@ -326,7 +337,7 @@ export const executeAnalysisPipeline = async ({
           { key: 'POLICY_NUMBER', label: 'Policy Number', value: result.policy_number, is_missing: !result.policy_number },
           { key: 'CLAIM_NUMBER', label: 'Claim Number', value: result.claim_number, is_missing: !result.claim_number },
           { key: 'PATIENT_NAME', label: 'Patient Name', value: result.patient_name || '', is_missing: !result.patient_name },
-          { key: 'DISPUTED_AMOUNT', label: 'Disputed Amount', value: `₹${result.claim.deducted_amount.toLocaleString('en-IN')}`, is_missing: false }
+          { key: 'DISPUTED_AMOUNT', label: 'Disputed Amount', value: `₹${(result.claim?.disputed_amount || result.claim?.deducted_amount || result.claim?.claimed_amount || 0).toLocaleString('en-IN')}`, is_missing: false }
         ],
         created_at: nowStr,
         updated_at: nowStr
@@ -341,7 +352,7 @@ export const executeAnalysisPipeline = async ({
         body: result.ombudsman_complaint.body || '',
         placeholders: [
           { key: 'INSURER_NAME', label: 'Insurer Name', value: result.insurer, is_missing: false },
-          { key: 'DISPUTED_AMOUNT', label: 'Disputed Amount', value: `₹${result.claim.deducted_amount.toLocaleString('en-IN')}`, is_missing: false }
+          { key: 'DISPUTED_AMOUNT', label: 'Disputed Amount', value: `₹${(result.claim?.disputed_amount || result.claim?.deducted_amount || result.claim?.claimed_amount || 0).toLocaleString('en-IN')}`, is_missing: false }
         ],
         created_at: nowStr,
         updated_at: nowStr
