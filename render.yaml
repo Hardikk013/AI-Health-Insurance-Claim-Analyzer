@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: claimfight
+    runtime: node
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GEMINI_MODEL
+        value: gemini-2.0-flash
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ADMIN_SECRET_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: https://claimfight.in,https://www.claimfight.in

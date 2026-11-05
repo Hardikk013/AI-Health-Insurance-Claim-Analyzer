@@ -16,9 +16,13 @@ GEMINI_MODEL=gemini-2.0-flash              # Primary model (fallback to gemini-1
 # Optional Automation Webhook (if using external n8n)
 CLAIM_ANALYSIS_WEBHOOK_URL=https://your-n8n.cloud/webhook/claimfight/analyse
 
+# Administrative Secret (Protects /admin config and model controls)
+ADMIN_SECRET_KEY=ClaimFight@Admin2026!
+
 # Server Configuration
 PORT=3001
 NODE_ENV=production
+ALLOWED_ORIGINS=https://claimfight.in,https://www.claimfight.in
 ```
 
 > [!IMPORTANT]
