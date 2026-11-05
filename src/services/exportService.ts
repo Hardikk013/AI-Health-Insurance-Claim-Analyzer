@@ -1,6 +1,4 @@
-import jsPDF from 'jspdf';
-import { Document, Paragraph, TextRun, HeadingLevel, Packer, AlignmentType, BorderStyle } from 'docx';
-
+// Dynamic, on-demand exports for PDF and DOCX generation to keep initial bundle light
 export interface LetterExportData {
   title: string;
   recipientTitle: string;
@@ -16,7 +14,8 @@ export interface LetterExportData {
   deductedAmount?: number;
 }
 
-export const exportLetterToPdf = (data: LetterExportData, filename: string = 'ClaimFight_Grievance_Appeal.pdf') => {
+export const exportLetterToPdf = async (data: LetterExportData, filename: string = 'ClaimFight_Grievance_Appeal.pdf') => {
+  const { default: jsPDF } = await import('jspdf');
   const doc = new jsPDF({
     unit: 'pt',
     format: 'a4',
@@ -133,6 +132,7 @@ export const exportLetterToPdf = (data: LetterExportData, filename: string = 'Cl
 };
 
 export const exportLetterToDocx = async (data: LetterExportData, filename: string = 'ClaimFight_Grievance_Appeal.docx') => {
+  const { Document, Paragraph, TextRun, HeadingLevel, Packer, AlignmentType } = await import('docx');
   const paragraphs = data.body.split('\n\n').filter(p => p.trim().length > 0);
 
   const doc = new Document({

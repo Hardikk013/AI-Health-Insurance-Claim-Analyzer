@@ -94,10 +94,10 @@ export const SAMPLE_CASES: SampleCaseDefinition[] = [
             },
             {
               rule_code: 'OMBUDSMAN_RULE_17_LIMIT',
-              rule_title: 'Insurance Ombudsman Rule 17 Statutory Award Limit Check',
+              rule_title: 'Insurance Ombudsman Statutory Pecuniary Limit Check',
               passed: true,
-              explanation: 'Disputed relief of ₹78,000 is well within the statutory award limit of ₹30,00,000 under Rule 17(1) of Insurance Ombudsman Rules 2017.',
-              authority: 'Rule 17(1) & Rule 14(3), Insurance Ombudsman Rules, 2017 (Amended 2021)',
+              explanation: 'Disputed relief of ₹78,000 is well within the statutory pecuniary jurisdiction ceiling of ₹50,00,000 under Insurance Ombudsman Rules and CIO operational guidelines.',
+              authority: 'Rule 17 & Rule 14(3), Insurance Ombudsman Rules (Amended Pecuniary Limit: ₹50 Lakhs)',
               source_url: 'https://www.cioins.co.in/HowToApproach',
               last_verified: '2026-11-01'
             }
@@ -164,7 +164,7 @@ The Complainant holds policy P/121114/01/2025/004921 with inception date 01-Jan-
 The insurer repudiated the claim citing 24 months waiting period, overlooking that deducting 12 months continuity credit leaves a net waiting period of 365 days, which 578 days of active tenure fully satisfies.
 
 3. JURISDICTION & LIMITS:
-The relief claimed (Rs. 78,000/-) is well within the Ombudsman's statutory award limit of Rs. 30,00,000/- under Rule 17(1). Representation was submitted to the insurer's GRO on 12-Aug-2026 and 30 days have elapsed without resolution.
+The relief claimed (Rs. 78,000/-) is well within the Ombudsman's statutory pecuniary jurisdiction ceiling of Rs. 50,00,000/- under Rule 17. Representation was submitted to the insurer's GRO on 12-Aug-2026 and 30 days have elapsed without resolution.
 
 4. PRAYER:
 Award the full claim amount of Rs. 78,000/- along with penal interest under IRDAI Protection of Policyholders Interests Regulations.`,

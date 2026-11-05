@@ -127,21 +127,21 @@ async function runComprehensiveTests() {
   // =========================================================================
   // UNIT / REGRESSION TEST 5: Insurance Ombudsman Legal Verification
   // =========================================================================
-  console.log('\n--- 5. INSURANCE OMBUDSMAN RULES 2017 LEGAL VERIFICATION ---');
+  console.log('\n--- 5. INSURANCE OMBUDSMAN RULES LEGAL VERIFICATION ---');
   {
     // Eligible claim (₹78,000 relief sought)
     const omb = verifyOmbudsmanJurisdiction(78000);
-    assert(omb.statutory_award_limit === 3000000, 'Rule 17(1) statutory award ceiling is ₹30,00,000');
-    assert(omb.relief_sought_amount === 78000, 'Differentiates relief sought (₹78,000) from award ceiling (₹30,00,000)');
+    assert(omb.statutory_award_limit === 5000000, 'Statutory pecuniary jurisdiction ceiling is ₹50,00,000');
+    assert(omb.relief_sought_amount === 78000, 'Differentiates relief sought (₹78,000) from award ceiling (₹50,00,000)');
     assert(omb.is_within_award_limit === true, 'Identifies ₹78,000 is within Ombudsman jurisdiction');
     assert(omb.gro_representation_required === true, 'Verifies Rule 14(3) GRO written representation condition');
     assert(omb.thirty_day_wait_required === true, 'Verifies Rule 14(3) 30-day waiting period requirement');
     assert(omb.one_year_limitation_verified === true, 'Verifies Rule 14(3) 1-year limitation from rejection');
     assert(omb.last_verified === '2026-11-01', 'Official verification date is 2026-11-01');
 
-    // Exceeding limit claim (₹45,00,000 relief sought)
-    const ombExcess = verifyOmbudsmanJurisdiction(4500000);
-    assert(ombExcess.is_within_award_limit === false, 'Correctly flags claim > ₹30,00,000 as exceeding Ombudsman award limit');
+    // Exceeding limit claim (₹65,00,000 relief sought)
+    const ombExcess = verifyOmbudsmanJurisdiction(6500000);
+    assert(ombExcess.is_within_award_limit === false, 'Correctly flags claim > ₹50,00,000 as exceeding Ombudsman award limit');
     assert(ombExcess.rule_explanation.includes('exceeds the Insurance Ombudsman'), 'Explains jurisdiction redirected to Consumer Commission/Civil Court');
   }
 
@@ -216,10 +216,13 @@ async function runComprehensiveTests() {
   // =========================================================================
   console.log('\n--- 8. NEGATIVE TEST: FAILURE HANDLING & INTEGRITY ---');
   {
-    // Set invalid key to ensure failure is reported without fabricating analysis
+    // Set invalid key to ensure failure is reported without fabricating analysis (using authenticated admin header)
     await fetch(`${API_BASE}/admin/config`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ClaimFight@Admin2026!'
+      },
       body: JSON.stringify({ apiKey: 'invalid_gemini_key_for_testing' })
     });
 
@@ -249,6 +252,7 @@ async function runComprehensiveTests() {
     }
 
     assert(jobStatus === 'failed', 'Job properly fails when Gemini API key is invalid (no fake fallback generated)');
+    assert(Boolean(jobError), 'Job records failure error message when API key is invalid');
 
     const resultRes = await fetch(`${API_BASE}/cases/${jobId}/result`);
     assert(resultRes.status === 500, 'Result endpoint returns HTTP 500 on failure without returning fake claim results');
@@ -258,7 +262,10 @@ async function runComprehensiveTests() {
     if (originalApiKey) {
       await fetch(`${API_BASE}/admin/config`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ClaimFight@Admin2026!'
+        },
         body: JSON.stringify({ apiKey: originalApiKey })
       });
       console.log('  ✔ Restored original GEMINI_API_KEY from environment');
@@ -310,7 +317,7 @@ async function runComprehensiveTests() {
       assert(claim.claim.disputed_amount === 78000, `Disputed Amount: ₹${claim.claim.disputed_amount}`);
       assert(claim.date_verification.active_policy_days === 578, `Active Policy Tenure: ${claim.date_verification.active_policy_days} days`);
       assert(claim.date_verification.waiting_period_completed === true, `Waiting Period Completed: ${claim.date_verification.waiting_period_completed}`);
-      assert(claim.ombudsman_verification.statutory_award_limit === 3000000, `Ombudsman Rule 17(1) Limit: ₹${claim.ombudsman_verification.statutory_award_limit}`);
+      assert(claim.ombudsman_verification.statutory_award_limit === 5000000, `Ombudsman Pecuniary Limit: ₹${claim.ombudsman_verification.statutory_award_limit}`);
       assert(claim.document_comparison && claim.document_comparison.length > 0, 'Document comparisons populated with quotes');
       assert(Boolean(claim.document_comparison[0].source_document), `Source document cited: ${claim.document_comparison[0].source_document}`);
       assert(Boolean(claim.document_comparison[0].policy_page), `Page number cited: Page ${claim.document_comparison[0].policy_page}`);

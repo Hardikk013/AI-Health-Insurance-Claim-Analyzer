@@ -13,7 +13,7 @@ interface AuthState {
   purgeUserData: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>((set) => ({
   user: getStoredUserProfile(),
   isAuthenticated: true, // Auto-authenticated in demo/hackathon mode for seamless evaluation
   isLoading: false,

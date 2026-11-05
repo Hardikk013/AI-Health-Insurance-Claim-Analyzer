@@ -1,26 +1,77 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { 
   Scale, 
   Download, 
   Copy, 
   Check, 
   ExternalLink, 
-  AlertCircle
+  AlertCircle,
+  ArrowLeft
 } from 'lucide-react';
 import { useCaseStore } from '../store/useCaseStore';
+import { SAMPLE_CASES } from '../data/sampleCases';
 import { exportLetterToPdf, exportLetterToDocx } from '../services/exportService';
+import { Button } from '../components/common/Button';
+import { Tag } from '../components/common/Tag';
+import { PageTransition } from '../components/common/PageTransition';
 
 export const OmbudsmanComplaintPage: React.FC = () => {
-  const { activeCase, updateLetterBody } = useCaseStore();
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const { 
+    activeCase, 
+    cases, 
+    loadCases, 
+    setActiveCase, 
+    loadSampleCase, 
+    updateLetterBody 
+  } = useCaseStore();
   const [copied, setCopied] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
 
+  useEffect(() => {
+    loadCases();
+  }, [loadCases]);
+
+  useEffect(() => {
+    if (id) {
+      const saved = cases.find(c => c.id === id);
+      if (saved) {
+        setActiveCase(saved);
+      } else {
+        const sample = SAMPLE_CASES.find(s => s.id === id);
+        if (sample) {
+          loadSampleCase(id);
+        }
+      }
+    } else if (!activeCase) {
+      if (cases.length > 0) {
+        setActiveCase(cases[0]);
+      } else {
+        loadSampleCase('case-waiting-period-cataract');
+      }
+    }
+  }, [id, cases, activeCase, setActiveCase, loadSampleCase]);
+
   if (!activeCase) {
     return (
-      <main className="mx-auto w-full max-w-6xl px-4 py-16 text-center">
-        <h2 className="text-xl font-semibold text-primary">No claim case loaded</h2>
-        <Link to="/dashboard" className="text-xs text-accent underline mt-2 inline-block">Go to my cases</Link>
+      <main className="min-h-[calc(100vh-140px)] bg-cream py-16 px-4">
+        <div className="mx-auto w-full max-w-md text-center space-y-4 rounded-2xl border border-line bg-surface p-8 shadow-soft">
+          <AlertCircle className="size-10 text-muted mx-auto" />
+          <h2 className="text-xl font-medium text-ink">No claim case loaded</h2>
+          <p className="text-xs text-muted">Please select a case from My cases.</p>
+          <div className="pt-2">
+            <Button
+              variant="primary"
+              size="md"
+              className="w-full justify-center"
+              onClick={() => navigate('/dashboard')}
+            >
+              <span>Go to My cases</span>
+            </Button>
+          </div>
+        </div>
       </main>
     );
   }
@@ -29,16 +80,21 @@ export const OmbudsmanComplaintPage: React.FC = () => {
 
   if (!ombudsmanLetter) {
     return (
-      <main className="mx-auto w-full max-w-6xl px-4 py-16 text-center">
-        <div className="rounded-xl border bg-card p-8 max-w-md mx-auto space-y-3">
-          <Scale className="size-8 text-muted-foreground mx-auto" />
-          <h2 className="text-lg font-semibold text-primary">No Ombudsman draft needed</h2>
-          <p className="text-xs text-muted-foreground">
+      <main className="min-h-[calc(100vh-140px)] bg-cream py-16 px-4">
+        <div className="rounded-2xl border border-line bg-surface p-8 max-w-md mx-auto space-y-4 text-center shadow-soft">
+          <Scale className="size-8 text-muted mx-auto" />
+          <h2 className="text-lg font-medium text-ink">No Ombudsman draft needed</h2>
+          <p className="text-xs text-muted leading-relaxed">
             An Ombudsman complaint is drafted only when genuine grounds to contest exist and the insurer has repudiated unfairly.
           </p>
-          <Link to="/result" className="text-xs text-accent font-medium inline-block mt-2">
-            Return to results
-          </Link>
+          <Button
+            variant="secondary"
+            size="md"
+            className="w-full justify-center"
+            onClick={() => navigate('/result')}
+          >
+            <span>Return to results</span>
+          </Button>
         </div>
       </main>
     );
@@ -91,105 +147,118 @@ export const OmbudsmanComplaintPage: React.FC = () => {
   };
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-8 md:py-12 space-y-8">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-primary">
-            Insurance Ombudsman complaint
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Formulated under Rule 13 of the Insurance Ombudsman Rules, 2017. Free of cost with no lawyer required.
-          </p>
-        </div>
+    <PageTransition>
+      <main className="min-h-screen bg-cream py-8 md:py-12 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-5xl space-y-8">
+          
+          {/* Top Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <button
+                type="button"
+                onClick={() => navigate('/result')}
+                className="inline-flex items-center gap-1 text-xs font-mono text-muted hover:text-ink transition-colors cursor-pointer mb-1"
+              >
+                <ArrowLeft className="size-3.5" />
+                <span>Back to analysis</span>
+              </button>
+              <h1 className="text-2xl sm:text-3xl font-medium tracking-tight text-ink">
+                Insurance Ombudsman complaint
+              </h1>
+              <p className="text-xs sm:text-sm text-muted">
+                Formulated under Rule 13 & 14 of the Insurance Ombudsman Rules, 2017. Zero court fees and no lawyer required.
+              </p>
+            </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={handleCopy}
-            className="inline-flex min-h-11 items-center rounded-lg border bg-card px-3 text-xs font-medium text-primary hover:bg-muted/50 shadow-xs"
-          >
-            {copied ? <Check className="size-3.5 text-success mr-1.5" /> : <Copy className="size-3.5 mr-1.5" />}
-            <span>{copied ? 'Copied' : 'Copy'}</span>
-          </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleCopy}
+              >
+                {copied ? <Check className="size-3.5 text-teal mr-1" /> : <Copy className="size-3.5 mr-1" />}
+                <span>{copied ? 'Copied' : 'Copy'}</span>
+              </Button>
 
-          <button
-            type="button"
-            onClick={handleExportPdf}
-            className="inline-flex min-h-11 items-center rounded-lg bg-accent px-4 text-xs font-medium text-accent-foreground hover:opacity-90 shadow-sm"
-          >
-            <Download className="size-3.5 mr-1.5" />
-            <span>Download PDF</span>
-          </button>
+              <Button
+                variant="primary"
+                size="md"
+                onClick={handleExportPdf}
+              >
+                <Download className="size-3.5 mr-1.5" />
+                <span>Download PDF</span>
+              </Button>
 
-          <button
-            type="button"
-            onClick={handleExportDocx}
-            className="inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-xs font-medium text-primary-foreground hover:opacity-90 shadow-sm"
-          >
-            <Download className="size-3.5 mr-1.5" />
-            <span>Download Word</span>
-          </button>
-        </div>
-      </div>
-
-      {downloadSuccess && (
-        <div className="p-3 bg-success-soft border border-success/30 rounded-lg text-xs text-success font-medium flex items-center gap-2">
-          <Check className="size-4" />
-          <span>{downloadSuccess}</span>
-        </div>
-      )}
-
-      {/* Rules Notice */}
-      <div className="rounded-xl border bg-muted/40 p-4 space-y-2">
-        <div className="flex items-center gap-2 text-xs font-semibold text-primary">
-          <AlertCircle className="size-4 text-warning" />
-          <span>Prerequisites under Insurance Ombudsman Rules:</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-muted-foreground">
-          <div className="rounded-lg border bg-card p-3">
-            <p className="font-semibold text-primary">1. Written representation</p>
-            <p className="mt-0.5">Complaint can be filed only after making a formal grievance to insurer GRO.</p>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleExportDocx}
+              >
+                <Download className="size-3.5 mr-1" />
+                <span>Word (.docx)</span>
+              </Button>
+            </div>
           </div>
-          <div className="rounded-lg border bg-card p-3">
-            <p className="font-semibold text-primary">2. 30-day waiting rule</p>
-            <p className="mt-0.5">Approach the Ombudsman after rejection, partial reply, or 30 days of no reply.</p>
+
+          {downloadSuccess && (
+            <div className="p-3 bg-mint border border-teal/30 rounded-xl text-xs text-[#085041] font-mono font-medium flex items-center gap-2">
+              <Check className="size-4 text-teal" />
+              <span>{downloadSuccess}</span>
+            </div>
+          )}
+
+          {/* Rules Notice */}
+          <div className="rounded-2xl border border-line bg-surface p-5 space-y-3 shadow-soft">
+            <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wide text-ink font-semibold">
+              <Scale className="size-4 text-teal" />
+              <span>Prerequisites under Insurance Ombudsman Rules:</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-muted">
+              <div className="rounded-xl border border-line bg-cream p-3.5 space-y-1">
+                <p className="font-semibold text-ink">1. Prior written appeal</p>
+                <p className="leading-relaxed">Must first submit written grievance representation to insurer's GRO.</p>
+              </div>
+              <div className="rounded-xl border border-line bg-cream p-3.5 space-y-1">
+                <p className="font-semibold text-ink">2. 30-day waiting rule</p>
+                <p className="leading-relaxed">Eligible after 30 days of no reply or after receiving repudiation letter.</p>
+              </div>
+              <div className="rounded-xl border border-line bg-cream p-3.5 space-y-1">
+                <p className="font-semibold text-ink">3. Statutory award limit</p>
+                <p className="leading-relaxed">Ombudsman jurisdiction applies up to ₹50,00,000 compensation ceiling.</p>
+              </div>
+            </div>
           </div>
-          <div className="rounded-lg border bg-card p-3">
-            <p className="font-semibold text-primary">3. Financial ceiling</p>
-            <p className="mt-0.5">Disputed claim must not exceed ₹30 Lakhs (including compensation).</p>
+
+          {/* Complaint Body */}
+          <div className="rounded-2xl border border-line bg-surface p-6 sm:p-8 space-y-5 shadow-soft">
+            <div className="p-3.5 rounded-xl border border-line bg-cream text-xs sm:text-sm font-semibold text-ink">
+              SUBJECT: {ombudsmanLetter.subject}
+            </div>
+
+            <div className="space-y-1">
+              <textarea
+                rows={18}
+                value={ombudsmanLetter.body}
+                onChange={(e) => updateLetterBody(ombudsmanLetter.id, e.target.value)}
+                className="w-full p-4 rounded-xl border border-line focus:border-teal bg-cream/30 font-mono text-xs sm:text-sm text-ink leading-relaxed shadow-soft outline-none"
+              />
+            </div>
+
+            <div className="pt-3 border-t border-line flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-muted">
+              <span>File online or submit to your regional Insurance Ombudsman office.</span>
+              <a
+                href="https://www.cioins.co.in"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 font-mono text-xs text-teal hover:underline"
+              >
+                <span>Visit Council for Insurance Ombudsmen Portal</span>
+                <ExternalLink className="size-3" />
+              </a>
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Complaint Body */}
-      <div className="rounded-xl border bg-card p-6 sm:p-8 space-y-5 shadow-xs">
-        <div className="p-3 rounded-lg border bg-muted/30 text-xs sm:text-sm font-semibold text-primary">
-          SUBJECT: {ombudsmanLetter.subject}
-        </div>
-
-        <div className="space-y-1">
-          <textarea
-            rows={18}
-            value={ombudsmanLetter.body}
-            onChange={(e) => updateLetterBody(ombudsmanLetter.id, e.target.value)}
-            className="w-full p-4 rounded-lg border focus:border-accent font-sans text-xs sm:text-sm text-foreground leading-relaxed shadow-xs"
-          />
-        </div>
-
-        <div className="pt-3 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-muted-foreground">
-          <span>File online or submit to your regional Insurance Ombudsman centre.</span>
-          <a
-            href="https://www.cioins.co.in"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 font-medium text-accent hover:underline"
-          >
-            <span>Visit Council for Insurance Ombudsmen Portal</span>
-            <ExternalLink className="size-3" />
-          </a>
-        </div>
-      </div>
-    </main>
+      </main>
+    </PageTransition>
   );
 };

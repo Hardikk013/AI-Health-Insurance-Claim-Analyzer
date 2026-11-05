@@ -1,22 +1,169 @@
 @import "tailwindcss";
-@import "./lovable.css";
+
+@theme {
+  --color-cream: var(--cream);
+  --color-ink: var(--ink);
+  --color-teal: var(--teal);
+  --color-teal-hover: var(--teal-hover);
+  --color-mint: var(--mint);
+  --color-amber: var(--amber);
+  --color-muted: var(--muted);
+  --color-muted-ink: var(--muted-ink);
+  --color-line: var(--line);
+  --color-surface: var(--surface);
+}
 
 @layer base {
   :root {
-    --primary-navy: oklch(27% .06 255);
-    --navy-light: #1A365D;
-    --teal-brand: oklch(57% .09 195);
-    --teal-light: #E6F4F4;
-    --amber-accent: #E8A33D;
-    --amber-light: #FEF7ED;
-    --surface-light: oklch(97% .004 250);
-    --surface-card: #FFFFFF;
-    --text-primary: oklch(25% .03 250);
-    --text-muted: oklch(51% .03 245);
-    --contest-green: oklch(56% .12 155);
-    --contest-green-light: oklch(95% .04 155);
-    --insurer-red: oklch(54% .18 30);
-    --insurer-red-light: oklch(95% .03 30);
-    --border-subtle: oklch(90% .008 250);
+    --cream: #F6F4EF;
+    --ink: #12302E;
+    --teal: #1B7F7A;
+    --teal-hover: #166B67;
+    --mint: #D9EFEA;
+    --amber: #F2A93B;
+    --muted: #5E716D; /* WCAG 2.2 AA compliant 4.8:1 contrast against #F6F4EF */
+    --muted-ink: #4B5C59;
+    --line: #E2DED5;
+    --surface: #FFFFFF;
+
+    /* Semantic tokens for components */
+    --background: var(--cream);
+    --foreground: var(--ink);
+    --card: var(--surface);
+    --card-foreground: var(--ink);
+    --popover: var(--surface);
+    --popover-foreground: var(--ink);
+    --primary: var(--ink);
+    --primary-foreground: var(--cream);
+    --secondary: var(--mint);
+    --secondary-foreground: #085041;
+    --accent: var(--teal);
+    --accent-foreground: #FFFFFF;
+    --muted-foreground: var(--muted-ink);
+    --border: var(--line);
+    --input: var(--line);
+    --ring: var(--teal);
+
+    /* Status badge colors */
+    --status-strong-bg: #D9EFEA;
+    --status-strong-text: #085041;
+    --status-medium-bg: #FAEEDA;
+    --status-medium-text: #633806;
+    --status-weak-bg: #FCEBEB;
+    --status-weak-text: #791F1F;
+    --status-info-bg: #E6F1FB;
+    --status-info-text: #0C447C;
+
+    /* Motion tokens */
+    --dur-fast: 150ms;
+    --dur-base: 300ms;
+    --dur-slow: 600ms;
+    --ease-out-cubic: cubic-bezier(0.22, 1, 0.36, 1);
   }
+
+  .dark {
+    --cream: #0C1F1E;
+    --ink: #F6F4EF;
+    --teal: #1B7F7A;
+    --teal-hover: #209690;
+    --mint: #143834;
+    --amber: #F2A93B;
+    --muted: #7E9490;
+    --muted-ink: #A3B5B2;
+    --line: #203B38;
+    --surface: #142928;
+
+    --background: #0C1F1E;
+    --foreground: #F6F4EF;
+    --card: #142928;
+    --card-foreground: #F6F4EF;
+    --popover: #142928;
+    --popover-foreground: #F6F4EF;
+    --primary: #F6F4EF;
+    --primary-foreground: #0C1F1E;
+    --secondary: #143834;
+    --secondary-foreground: #D9EFEA;
+    --accent: #1B7F7A;
+    --accent-foreground: #FFFFFF;
+    --muted-foreground: #A3B5B2;
+    --border: #203B38;
+    --input: #203B38;
+    --ring: #1B7F7A;
+
+    --status-strong-bg: #143834;
+    --status-strong-text: #D9EFEA;
+    --status-medium-bg: #382914;
+    --status-medium-text: #FAEEDA;
+    --status-weak-bg: #381A1A;
+    --status-weak-text: #FCEBEB;
+    --status-info-bg: #132D47;
+    --status-info-text: #E6F1FB;
+  }
+
+  * {
+    border-color: var(--border);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter Tight', 'Inter', sans-serif;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+  }
+
+  .font-serif-italic {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+  }
+
+  .font-handwriting {
+    font-family: 'Caveat', cursive;
+    font-weight: 500;
+  }
+
+  .font-mono-code {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* WCAG 2.2 AA Focus indicators */
+  :focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 2px;
+  }
+}
+
+/* WCAG 2.2 AA: Respect Prefers Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Custom Soft Floating Shadow */
+.shadow-soft {
+  box-shadow: 0 8px 24px rgba(18, 48, 46, 0.06);
+}
+
+.shadow-soft-lg {
+  box-shadow: 0 16px 36px rgba(18, 48, 46, 0.08);
 }

@@ -10,8 +10,8 @@ interface CaseState {
   activeSample: SampleCaseDefinition | null;
   pendingFiles: {
     rejection: File;
-    policy: File;
-    discharge: File;
+    policy?: File | null;
+    discharge?: File | null;
   } | null;
   analysisSteps: AnalysisProgressStep[];
   currentStepIndex: number;
@@ -22,13 +22,13 @@ interface CaseState {
   // Actions
   loadCases: () => void;
   setActiveCase: (claimCase: ClaimCase | null) => void;
-  setPendingFiles: (files: { rejection: File; policy: File; discharge: File } | null) => void;
+  setPendingFiles: (files: { rejection: File; policy?: File | null; discharge?: File | null } | null) => void;
   loadSampleCase: (sampleId: string) => ClaimCase;
   runAnalysis: (params: {
     files: {
       rejection: File | { name: string; size: number };
-      policy: File | { name: string; size: number };
-      discharge: File | { name: string; size: number };
+      policy?: File | { name: string; size: number } | null;
+      discharge?: File | { name: string; size: number } | null;
     };
     sampleId?: string;
   }) => Promise<ClaimCase>;
@@ -101,15 +101,15 @@ export const useCaseStore = create<CaseState>((set, get) => ({
       } : undefined,
       ombudsman_verification: {
         relief_sought_amount: sample.disputedAmount ?? sample.deductedAmount,
-        statutory_award_limit: 3000000,
-        is_within_award_limit: (sample.disputedAmount ?? sample.deductedAmount) <= 3000000,
+        statutory_award_limit: 5000000,
+        is_within_award_limit: (sample.disputedAmount ?? sample.deductedAmount) <= 5000000,
         gro_representation_required: true,
         thirty_day_wait_required: true,
         one_year_limitation_verified: true,
         no_concurrent_court_litigation: true,
-        official_citation: 'Rule 17(1) & Rule 14(3), Insurance Ombudsman Rules, 2017 (Amended 2021)',
+        official_citation: 'Rule 17 & Rule 14(3), Insurance Ombudsman Rules (Amended Pecuniary Limit: ₹50 Lakhs)',
         last_verified: '2026-11-01',
-        rule_explanation: 'The relief sought is within the Insurance Ombudsman\'s maximum statutory award limit of ₹30,00,000 under Rule 17(1).'
+        rule_explanation: 'The relief sought is within the Insurance Ombudsman\'s maximum statutory pecuniary limit of ₹50,00,000 under Rule 17.'
       },
       missing_information: sample.id === 'case-waiting-period-cataract' ? [
         'Portability Certificate / Previous Policy Schedule confirming 12-month continuity credit'

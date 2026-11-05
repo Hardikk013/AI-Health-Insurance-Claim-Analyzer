@@ -52,8 +52,8 @@ export interface RunAnalysisParams {
   caseId?: string;
   files: {
     rejection: File | { name: string; size: number; url?: string };
-    policy: File | { name: string; size: number; url?: string };
-    discharge: File | { name: string; size: number; url?: string };
+    policy?: File | { name: string; size: number; url?: string } | null;
+    discharge?: File | { name: string; size: number; url?: string } | null;
   };
   sampleId?: string;
   onStepUpdate: (steps: AnalysisProgressStep[], activeIndex: number, progressPercent: number) => void;
@@ -63,18 +63,18 @@ export interface RunAnalysisParams {
  * Helper to ensure we have real File instances with actual PDF bytes.
  * If mock / stub objects were provided (e.g. from samples), fetch the real sample PDF file.
  */
-async function ensureRealFile(input: File | { name: string; size: number; url?: string }, defaultSamplePath: string): Promise<File> {
+async function ensureRealFile(input: File | { name: string; size: number; url?: string } | null | undefined, defaultSamplePath: string): Promise<File> {
   if (input instanceof File && input.size > 200) {
     return input;
   }
 
   // Fetch actual sample PDF
-  const path = (input as any).url || defaultSamplePath;
+  const path = (input as any)?.url || defaultSamplePath;
   try {
     const res = await fetch(path);
     if (!res.ok) throw new Error(`HTTP ${res.status} fetching sample ${path}`);
     const blob = await res.blob();
-    return new File([blob], input.name || path.split('/').pop() || 'document.pdf', {
+    return new File([blob], (input as any)?.name || path.split('/').pop() || 'document.pdf', {
       type: blob.type || 'application/pdf'
     });
   } catch (err) {
@@ -82,119 +82,167 @@ async function ensureRealFile(input: File | { name: string; size: number; url?: 
     // If running in environment where public URL is relative, try root path
     const fallbackRes = await fetch('/' + path.replace(/^\//, ''));
     const blob = await fallbackRes.blob();
-    return new File([blob], input.name || 'document.pdf', { type: 'application/pdf' });
+    return new File([blob], (input as any)?.name || 'document.pdf', { type: 'application/pdf' });
   }
 }
+
+let isPipelineActive = false;
 
 export const executeAnalysisPipeline = async ({
   files,
   sampleId,
   onStepUpdate
 }: RunAnalysisParams): Promise<ClaimCase> => {
-  // 1. Quota check (bypassed if Admin Mode is enabled)
-  const profile = getStoredUserProfile();
-  const maxLimit = profile.custom_daily_limit || 3;
-  if (!isAdminMode() && profile.analyses_today >= maxLimit) {
-    throw new Error(`Daily limit reached: ${profile.analyses_today}/${maxLimit} analyses used. Open Admin Panel (/admin) to reset quota or enable unlimited mode.`);
+  // Check online status
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    throw new Error('Network connection lost. Please verify your internet connection and click Retry.');
   }
 
-  // Initial step setup
-  const stepsState = JSON.parse(JSON.stringify(ANALYSIS_STEPS)) as AnalysisProgressStep[];
-  stepsState[0].status = 'running';
-  stepsState[0].detailMessage = 'Preparing documents for Gemini Multimodal Vision analysis...';
-  onStepUpdate([...stepsState], 0, 10);
+  // Prevent duplicate concurrent executions
+  if (isPipelineActive) {
+    throw new Error('An analysis is already actively running. Please wait for it to complete.');
+  }
 
-  // 2. Resolve genuine File instances
-  const realRejection = await ensureRealFile(
-    files.rejection,
-    sampleId?.includes('ped') ? '/samples/sample_rejection_letter_ped.pdf' :
-    sampleId?.includes('room') ? '/samples/sample_settlement_letter_room_rent.pdf' :
-    sampleId?.includes('dental') ? '/samples/sample_rejection_letter_dental.pdf' :
-    '/samples/sample_rejection_letter_cataract.pdf'
-  );
+  isPipelineActive = true;
 
-  const realPolicy = await ensureRealFile(
-    files.policy,
-    sampleId?.includes('ped') ? '/samples/sample_policy_wordings_care.pdf' :
-    sampleId?.includes('room') ? '/samples/sample_policy_wordings_hdfc.pdf' :
-    sampleId?.includes('dental') ? '/samples/sample_policy_wordings_nivabupa.pdf' :
-    '/samples/sample_policy_wordings_star.pdf'
-  );
+  try {
+    // 1. Quota check (bypassed if Admin Mode is enabled)
+    const profile = getStoredUserProfile();
+    const maxLimit = profile.custom_daily_limit || 3;
+    if (!isAdminMode() && profile.analyses_today >= maxLimit) {
+      throw new Error(`Daily limit reached: ${profile.analyses_today}/${maxLimit} analyses used. Open Admin Panel (/admin) to reset quota or enable unlimited mode.`);
+    }
 
-  const realDischarge = await ensureRealFile(
-    files.discharge,
-    sampleId?.includes('ped') ? '/samples/sample_discharge_summary_ped.pdf' :
-    sampleId?.includes('room') ? '/samples/sample_discharge_summary_room_rent.pdf' :
-    sampleId?.includes('dental') ? '/samples/sample_discharge_summary_dental.pdf' :
-    '/samples/sample_discharge_summary_cataract.pdf'
-  );
+    // Initial step setup
+    const stepsState = JSON.parse(JSON.stringify(ANALYSIS_STEPS)) as AnalysisProgressStep[];
+    stepsState[0].status = 'running';
+    stepsState[0].detailMessage = 'Preparing documents for Gemini Multimodal Vision analysis...';
+    onStepUpdate([...stepsState], 0, 10);
 
-  // 3. Construct FormData for backend upload
-  const formData = new FormData();
-  formData.append('rejection', realRejection, realRejection.name);
-  formData.append('policy', realPolicy, realPolicy.name);
-  formData.append('discharge', realDischarge, realDischarge.name);
-  formData.append('user_id', profile.id);
+    // 2. Resolve genuine File instances
+    const realRejection = await ensureRealFile(
+      files.rejection,
+      sampleId?.includes('ped') ? '/samples/sample_rejection_letter_ped.pdf' :
+      sampleId?.includes('room') ? '/samples/sample_settlement_letter_room_rent.pdf' :
+      sampleId?.includes('dental') ? '/samples/sample_rejection_letter_dental.pdf' :
+      '/samples/sample_rejection_letter_cataract.pdf'
+    );
 
-  // 4. Send to backend analyze endpoint
-  const analyzeRes = await fetch('/api/cases/analyze', {
-    method: 'POST',
-    body: formData
-  });
+    const realPolicy = await ensureRealFile(
+      files.policy,
+      sampleId?.includes('ped') ? '/samples/sample_policy_wordings_care.pdf' :
+      sampleId?.includes('room') ? '/samples/sample_policy_wordings_hdfc.pdf' :
+      sampleId?.includes('dental') ? '/samples/sample_policy_wordings_nivabupa.pdf' :
+      '/samples/sample_policy_wordings_star.pdf'
+    );
 
-  if (!analyzeRes.ok) {
-    let errorDetail = 'Backend analysis failed to start.';
+    const realDischarge = await ensureRealFile(
+      files.discharge,
+      sampleId?.includes('ped') ? '/samples/sample_discharge_summary_ped.pdf' :
+      sampleId?.includes('room') ? '/samples/sample_discharge_summary_room_rent.pdf' :
+      sampleId?.includes('dental') ? '/samples/sample_discharge_summary_dental.pdf' :
+      '/samples/sample_discharge_summary_cataract.pdf'
+    );
+
+    // 3. Construct FormData for backend upload
+    const formData = new FormData();
+    formData.append('rejection', realRejection, realRejection.name);
+    formData.append('policy', realPolicy, realPolicy.name);
+    formData.append('discharge', realDischarge, realDischarge.name);
+    formData.append('user_id', profile.id);
+    if (sampleId) {
+      formData.append('sample_id', sampleId);
+    }
+
+    // 4. Send to backend analyze endpoint with network error interception
+    let analyzeRes: Response;
     try {
-      const errJson = await analyzeRes.json();
-      errorDetail = errJson.error || errorDetail;
+      analyzeRes = await fetch('/api/cases/analyze', {
+        method: 'POST',
+        body: formData
+      });
+    } catch (netErr: any) {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        throw new Error('Network connection lost. Please check your internet connection and click Retry.');
+      }
+      throw new Error(`Unable to reach the analysis server: ${netErr?.message || 'Connection error'}. Please retry.`);
+    }
+
+    if (!analyzeRes.ok) {
+      let errorDetail = 'Backend analysis failed to start.';
+      try {
+        const errJson = await analyzeRes.json();
+        errorDetail = errJson.error || errorDetail;
+      } catch {
+        errorDetail = `HTTP ${analyzeRes.status}: ${analyzeRes.statusText}`;
+      }
+      throw new Error(errorDetail);
+    }
+
+    const { jobId } = await analyzeRes.json();
+
+    // 5. Poll /api/cases/:id/status until completed or failed
+    const pollInterval = 600;
+    const maxAttempts = 180; // 180 * 600ms = 108 seconds timeout
+    let attempts = 0;
+    let jobCompleted = false;
+    let consecutiveNetworkErrors = 0;
+
+    while (!jobCompleted && attempts < maxAttempts) {
+      attempts++;
+      await new Promise(r => setTimeout(r, pollInterval));
+
+      try {
+        const statusRes = await fetch(`/api/cases/${jobId}/status`);
+        consecutiveNetworkErrors = 0;
+
+        if (!statusRes.ok) {
+          continue;
+        }
+
+        const statusData = await statusRes.json();
+
+        if (statusData.steps && Array.isArray(statusData.steps)) {
+          onStepUpdate(statusData.steps, statusData.currentStepIndex || 0, statusData.progressPercent || 20);
+        }
+
+        if (statusData.status === 'failed') {
+          throw new Error(statusData.error || 'Gemini document analysis encountered an error. Please retry.');
+        }
+
+        if (statusData.status === 'completed') {
+          jobCompleted = true;
+          break;
+        }
+      } catch (pollErr: any) {
+        if (pollErr?.message && !pollErr.message.includes('Failed to fetch')) {
+          throw pollErr;
+        }
+        consecutiveNetworkErrors++;
+        if (consecutiveNetworkErrors >= 5) {
+          if (typeof navigator !== 'undefined' && !navigator.onLine) {
+            throw new Error('Network connection lost during analysis. Please reconnect and click Retry.');
+          }
+          throw new Error('Network communication with server was interrupted. Please retry.');
+        }
+      }
+    }
+
+    if (!jobCompleted) {
+      throw new Error('Analysis timed out waiting for Gemini response. Please click Retry.');
+    }
+
+    // 6. Retrieve validated result JSON from /api/cases/:id/result
+    let resultRes: Response;
+    try {
+      resultRes = await fetch(`/api/cases/${jobId}/result`);
     } catch {
-      errorDetail = `HTTP ${analyzeRes.status}: ${analyzeRes.statusText}`;
-    }
-    throw new Error(errorDetail);
-  }
-
-  const { jobId } = await analyzeRes.json();
-
-  // 5. Poll /api/cases/:id/status until completed or failed
-  const pollInterval = 900;
-  const maxAttempts = 120; // 120 * 900ms ~ 108 seconds timeout
-  let attempts = 0;
-  let jobCompleted = false;
-
-  while (!jobCompleted && attempts < maxAttempts) {
-    attempts++;
-    await new Promise(r => setTimeout(r, pollInterval));
-
-    const statusRes = await fetch(`/api/cases/${jobId}/status`);
-    if (!statusRes.ok) {
-      continue;
+      throw new Error('Network error retrieving claim analysis result. Please click Retry.');
     }
 
-    const statusData = await statusRes.json();
-
-    if (statusData.steps && Array.isArray(statusData.steps)) {
-      onStepUpdate(statusData.steps, statusData.currentStepIndex || 0, statusData.progressPercent || 20);
+    if (!resultRes.ok) {
+      throw new Error('Could not retrieve completed claim analysis from server. Please retry.');
     }
-
-    if (statusData.status === 'failed') {
-      throw new Error(statusData.error || 'Gemini document analysis encountered an error. Please verify your GEMINI_API_KEY and retry.');
-    }
-
-    if (statusData.status === 'completed') {
-      jobCompleted = true;
-      break;
-    }
-  }
-
-  if (!jobCompleted) {
-    throw new Error('Analysis timed out waiting for Gemini response. Please retry.');
-  }
-
-  // 6. Retrieve validated result JSON from /api/cases/:id/result
-  const resultRes = await fetch(`/api/cases/${jobId}/result`);
-  if (!resultRes.ok) {
-    throw new Error('Could not retrieve completed claim analysis from server.');
-  }
 
   const { result } = (await resultRes.json()) as { result: AnalysisResponseContract };
   if (!result) {
@@ -257,6 +305,20 @@ export const executeAnalysisPipeline = async ({
     ombudsman_verification: result.ombudsman_verification,
     missing_information: result.missing_information || [],
     warnings: result.warnings || [],
+
+    // Standardized Requirement 7 fields
+    executive_summary: result.executive_summary || result.case_summary,
+    claim_decision_assessment: result.claim_decision_assessment || result.case_status,
+    rejection_reason: result.rejection_reason || result.rejection_analysis?.reason,
+    relevant_policy_clauses: result.relevant_policy_clauses || result.policy_analysis?.relevant_clauses,
+    evidence_by_document: result.evidence_by_document,
+    timeline_comparison: result.timeline_comparison,
+    financial_breakdown: result.financial_breakdown || result.claim,
+    missing_documents: result.missing_documents || result.missing_information,
+    potential_grounds_for_appeal: comparisons,
+    recommended_next_steps: result.recommended_next_steps,
+    confidence_and_limitations: result.confidence_and_limitations,
+
     status: 'completed',
     overall_verdict: overallVerdict,
     summary_plain: result.case_summary,
@@ -362,4 +424,7 @@ export const executeAnalysisPipeline = async ({
 
   saveCase(claimCase);
   return claimCase;
+  } finally {
+    isPipelineActive = false;
+  }
 };

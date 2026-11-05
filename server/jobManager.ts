@@ -1,5 +1,6 @@
 // Job Manager with Step Progression and 24-Hour Auto-Purge
 import fs from 'fs';
+import path from 'path';
 import { AnalysisJob, AnalysisProgressStep, AnalysisResponseContract } from './types';
 
 const INITIAL_STEPS: AnalysisProgressStep[] = [
@@ -52,15 +53,20 @@ class JobManager {
   private purgeInterval: NodeJS.Timeout | null = null;
 
   constructor() {
+    // Initial purge of any leftover/orphaned temporary files on server boot
+    this.purgeOrphanedTempFiles();
+
     // Run hourly auto-purge for 24-hour cleanup
     this.purgeInterval = setInterval(() => {
       this.purgeExpiredJobs();
+      this.purgeOrphanedTempFiles();
     }, 60 * 60 * 1000);
   }
 
   public createJob(params: {
     id: string;
     userId?: string;
+    fileSignature?: string;
     files: {
       rejection: { originalName: string; size: number; path: string; mimeType: string };
       policy: { originalName: string; size: number; path: string; mimeType: string };
@@ -68,7 +74,7 @@ class JobManager {
     };
   }): AnalysisJob {
     const now = Date.now();
-    const job: AnalysisJob = {
+    const job: AnalysisJob & { fileSignature?: string } = {
       id: params.id,
       userId: params.userId,
       status: 'pending',
@@ -77,15 +83,45 @@ class JobManager {
       steps: JSON.parse(JSON.stringify(INITIAL_STEPS)),
       files: params.files,
       createdAt: now,
-      expiresAt: now + 24 * 60 * 60 * 1000 // 24 hours retention
+      expiresAt: now + 24 * 60 * 60 * 1000, // 24 hours retention
+      fileSignature: params.fileSignature
     };
 
     this.jobs.set(params.id, job);
     return job;
   }
 
+  public findActiveJobByFiles(fileSignature: string): AnalysisJob | undefined {
+    const now = Date.now();
+    for (const job of this.jobs.values()) {
+      if (
+        (job.status === 'pending' || job.status === 'analyzing') &&
+        now - job.createdAt < 45000 &&
+        (job as any).fileSignature === fileSignature
+      ) {
+        return job;
+      }
+    }
+    return undefined;
+  }
+
   public getJob(id: string): AnalysisJob | undefined {
-    return this.jobs.get(id);
+    const job = this.jobs.get(id);
+    if (!job) return undefined;
+
+    // Timeout guard: prevent infinite loading if processing exceeds 90s
+    const elapsed = Date.now() - job.createdAt;
+    if ((job.status === 'pending' || job.status === 'analyzing') && elapsed > 90000) {
+      job.status = 'failed';
+      job.error = 'Analysis timed out after 90 seconds. Please click Retry to re-run the verification.';
+      if (job.steps[job.currentStepIndex]) {
+        job.steps[job.currentStepIndex].status = 'failed';
+        job.steps[job.currentStepIndex].detailMessage = job.error;
+      }
+      this.cleanupJobFiles(job);
+    }
+
+    return job;
   }
 
   public updateJobStep(id: string, stepIndex: number, detailMessage: string): void {
@@ -178,6 +214,32 @@ class JobManager {
         this.cleanupJobFiles(job);
         this.jobs.delete(id);
       }
+    }
+  }
+
+  public purgeOrphanedTempFiles(): void {
+    const tempDir = path.join(process.cwd(), 'uploads', 'temp');
+    if (!fs.existsSync(tempDir)) return;
+
+    try {
+      const files = fs.readdirSync(tempDir);
+      const now = Date.now();
+      const MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours strict retention
+
+      for (const file of files) {
+        const fullPath = path.join(tempDir, file);
+        try {
+          const stats = fs.statSync(fullPath);
+          if (now - stats.mtimeMs > MAX_AGE_MS) {
+            fs.unlinkSync(fullPath);
+            console.log(`[DPDP Auto-Purge] Safely deleted 24h expired file: ${file}`);
+          }
+        } catch {
+          // Ignore individual file unlink errors
+        }
+      }
+    } catch (dirErr) {
+      console.warn('[DPDP Auto-Purge] Could not read temp upload directory:', dirErr);
     }
   }
 }

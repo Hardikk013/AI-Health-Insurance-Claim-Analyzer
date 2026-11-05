@@ -177,17 +177,17 @@ export function validateDeterministicRules(input: RuleValidationInput): RuleVali
     }
   }
 
-  // 4. Insurance Ombudsman Rule 17 Statutory Award Limit Check
+  // 4. Insurance Ombudsman Statutory Pecuniary Limit Check (₹50 Lakhs under CIO/IRDAI guidelines)
   if (input.disputedAmount) {
-    const isUnder30L = input.disputedAmount <= 3000000;
+    const isUnder50L = input.disputedAmount <= 5000000;
     results.push({
       rule_code: 'OMBUDSMAN_RULE_17_LIMIT',
-      rule_title: 'Insurance Ombudsman Rule 17 Financial Award Limit Verification',
-      passed: isUnder30L,
-      explanation: isUnder30L
-        ? `Disputed relief of ₹${input.disputedAmount.toLocaleString('en-IN')} is within the Ombudsman's statutory compensation limit of ₹30,00,000 (Thirty Lakh Rupees) under Rule 17(1) of Insurance Ombudsman Rules 2017 (Amended 2021). You are eligible to file after representing to the insurer's GRO and waiting 30 days.`
-        : `Disputed relief of ₹${input.disputedAmount.toLocaleString('en-IN')} exceeds the Ombudsman's ₹30 Lakh award ceiling under Rule 17(1). This dispute must be filed before the State/National Consumer Commission.`,
-      authority: 'Rule 17(1) & Rule 14(3), Insurance Ombudsman Rules 2017 (Amended 2021)',
+      rule_title: 'Insurance Ombudsman Statutory Pecuniary Limit Verification',
+      passed: isUnder50L,
+      explanation: isUnder50L
+        ? `Disputed relief of ₹${input.disputedAmount.toLocaleString('en-IN')} is within the Ombudsman's statutory compensation limit of ₹50,00,000 (Fifty Lakh Rupees) under Insurance Ombudsman Rules and CIO operational guidelines. You are eligible to file after representing to the insurer's GRO and waiting 30 days.`
+        : `Disputed relief of ₹${input.disputedAmount.toLocaleString('en-IN')} exceeds the Ombudsman's ₹50 Lakh pecuniary ceiling. This dispute must be filed before the State/National Consumer Commission.`,
+      authority: 'Rule 17 & Rule 14(3), Insurance Ombudsman Rules (Amended Pecuniary Limit: ₹50 Lakhs)',
       source_url: 'https://www.cioins.co.in/HowToApproach',
       last_verified: '2026-11-01'
     });

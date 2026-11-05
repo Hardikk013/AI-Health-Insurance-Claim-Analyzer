@@ -37,7 +37,7 @@ export interface RuleApplied {
 
 export interface OmbudsmanLegalVerification {
   relief_sought_amount: number;
-  statutory_award_limit: number; // ₹30,00,000 under Rule 17(1) of Insurance Ombudsman Rules 2017
+  statutory_award_limit: number; // ₹50,00,000 under Insurance Ombudsman Rules (Amended Pecuniary Jurisdiction Ceiling)
   is_within_award_limit: boolean;
   gro_representation_required: boolean;
   thirty_day_wait_required: boolean;
@@ -53,9 +53,12 @@ export function parseFlexibleDate(dateStr: string | null | undefined): Date | nu
   const clean = dateStr.trim();
   
   // If already standard ISO YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}/.test(clean)) {
-    const direct = new Date(clean);
-    if (!isNaN(direct.getTime())) return direct;
+  const isoMatch = clean.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    const y = parseInt(isoMatch[1], 10);
+    const m = parseInt(isoMatch[2], 10) - 1;
+    const d = parseInt(isoMatch[3], 10);
+    return new Date(Date.UTC(y, m, d));
   }
 
   // Handle DD-MM-YYYY, DD/MM/YYYY, DD.MM.YYYY, DD-MMM-YYYY, or DD Month YYYY (Indian convention)
@@ -66,7 +69,7 @@ export function parseFlexibleDate(dateStr: string | null | undefined): Date | nu
       const y = parseInt(parts[0], 10);
       const m = parseInt(parts[1], 10) - 1;
       const d = parseInt(parts[2], 10);
-      const res = new Date(y, m, d);
+      const res = new Date(Date.UTC(y, m, d));
       if (!isNaN(res.getTime())) return res;
     }
     
@@ -81,15 +84,15 @@ export function parseFlexibleDate(dateStr: string | null | undefined): Date | nu
         m = monthMatch;
       }
       const y = parseInt(parts[2], 10);
-      const res = new Date(y, m, d);
+      const res = new Date(Date.UTC(y, m, d));
       if (!isNaN(res.getTime())) return res;
     }
   }
 
-  // Fallback to standard parse
+  // Fallback to standard parse normalized to UTC midnight
   const fallback = new Date(clean);
   if (!isNaN(fallback.getTime()) && fallback.getFullYear() > 1990) {
-    return fallback;
+    return new Date(Date.UTC(fallback.getFullYear(), fallback.getMonth(), fallback.getDate()));
   }
 
   return null;
@@ -135,7 +138,7 @@ export function verifyDatesDeterministically(
 
   // Exact calendar difference in days
   const diffTime = hospDate.getTime() - startDate.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
   const diffMonths = Math.floor(diffDays / 30.4375);
 
   const standardDays = waitingPeriodDays && waitingPeriodDays > 0 ? waitingPeriodDays : 730; // default 24 months = 730 days
@@ -244,15 +247,15 @@ export function verifyFinancialsDeterministically(
 }
 
 /**
- * Verifies Insurance Ombudsman Rules 2017 eligibility & statutory limits
- * Differentiates relief sought from statutory award limit (₹30 Lakhs)
+ * Verifies Insurance Ombudsman Rules eligibility & statutory pecuniary limits
+ * Differentiates relief sought from statutory award limit (₹50 Lakhs)
  */
 export function verifyOmbudsmanJurisdiction(
   disputedAmount: number,
   hasRepresentedToGro: boolean = true,
   groDaysElapsed: number = 30
 ): OmbudsmanLegalVerification {
-  const STATUTORY_AWARD_CEILING = 3000000; // ₹30,00,000 under Rule 17(1) of Insurance Ombudsman Rules 2017
+  const STATUTORY_AWARD_CEILING = 5000000; // ₹50,00,000 pecuniary jurisdiction ceiling under CIO/IRDAI Operational Guidelines
   const isWithinCap = disputedAmount <= STATUTORY_AWARD_CEILING;
 
   return {
@@ -263,11 +266,11 @@ export function verifyOmbudsmanJurisdiction(
     thirty_day_wait_required: true,
     one_year_limitation_verified: true,
     no_concurrent_court_litigation: true,
-    official_citation: 'Rule 17(1) & Rule 14(3), Insurance Ombudsman Rules, 2017 (Amended 2021)',
+    official_citation: 'Rule 17(1) & Rule 14(3), Insurance Ombudsman Rules (Amended Pecuniary Limit: ₹50 Lakhs)',
     last_verified: '2026-11-01',
     rule_explanation: isWithinCap
-      ? `The relief sought of ₹${disputedAmount.toLocaleString('en-IN')} is within the Insurance Ombudsman's maximum statutory award limit of ₹30,00,000 (Rupees Thirty Lakhs) under Rule 17(1). Under Rule 14(3), you may file a complaint with the Ombudsman after: (1) lodging a written grievance with the insurer's GRO, AND (2) the insurer has rejected the representation, provided partial relief, or 30 days have elapsed without response, provided the complaint is filed within 1 year and no court/consumer case is pending.`
-      : `The relief sought of ₹${disputedAmount.toLocaleString('en-IN')} exceeds the Insurance Ombudsman's maximum statutory award ceiling of ₹30,00,000 under Rule 17(1). This dispute must be filed before the State Consumer Disputes Redressal Commission or appropriate Civil Court.`
+      ? `The relief sought of ₹${disputedAmount.toLocaleString('en-IN')} is within the Insurance Ombudsman's maximum statutory award limit of ₹50,00,000 (Rupees Fifty Lakhs) under Rule 17. Under Rule 14(3), you may file a complaint with the Ombudsman after: (1) lodging a written grievance with the insurer's GRO, AND (2) the insurer has rejected the representation, provided partial relief, or 30 days have elapsed without response, provided the complaint is filed within 1 year and no court/consumer case is pending.`
+      : `The relief sought of ₹${disputedAmount.toLocaleString('en-IN')} exceeds the Insurance Ombudsman's maximum statutory award ceiling of ₹50,00,000 under Rule 17. This dispute must be filed before the State Consumer Disputes Redressal Commission or appropriate Civil Court.`
   };
 }
 

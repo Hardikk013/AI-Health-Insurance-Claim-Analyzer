@@ -7,12 +7,23 @@ import {
   Sparkles, 
   ArrowRight, 
   FileText, 
-  Gauge
+  ShieldCheck,
+  Building2,
+  ChevronRight,
+  Scale,
+  CheckCircle2,
+  AlertOctagon,
+  BarChart3
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useCaseStore } from '../store/useCaseStore';
 import { useAuthStore } from '../store/useAuthStore';
-import { VerdictBadge } from '../components/common/VerdictBadge';
 import { ClaimCase } from '../types';
+import { Tag } from '../components/common/Tag';
+import { Button } from '../components/common/Button';
+import { Mascot } from '../components/common/Mascot';
+import { CountUp } from '../components/common/CountUp';
+import { PageTransition } from '../components/common/PageTransition';
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -43,193 +54,305 @@ export const DashboardPage: React.FC = () => {
 
   const formatCountdown = (expiresAt: string) => {
     const diff = new Date(expiresAt).getTime() - Date.now();
-    if (diff <= 0) return 'Expired (Purging)';
+    if (diff <= 0) return 'Purged under DPDP Act';
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    return `${hours}h ${mins}m left until file auto-purge`;
+    return `${hours}h ${mins}m left until auto-purge`;
   };
 
   const analysesToday = user?.analyses_today || 0;
   const remainingToday = Math.max(0, 3 - analysesToday);
 
+  // Statistics derived purely from real case data
+  const totalCases = cases.length;
+  const totalDisputed = cases.reduce((acc, c) => acc + (Number(c.deducted_amount) || Number(c.claim_amount) || 0), 0);
+  const contestableCases = cases.filter(c => c.overall_verdict === 'grounds_to_contest');
+  const soundCases = cases.filter(c => c.overall_verdict === 'insurer_appears_correct');
+  const contestableRate = totalCases > 0 ? Math.round((contestableCases.length / totalCases) * 100) : 0;
+  const contestablePercent = totalCases > 0 ? (contestableCases.length / totalCases) * 100 : 0;
+  const soundPercent = totalCases > 0 ? (soundCases.length / totalCases) * 100 : 0;
+  const otherPercent = Math.max(0, 100 - contestablePercent - soundPercent);
+
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8 md:py-12 space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-primary">My cases</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Track analyses, inspect side-by-side comparisons, and download grievance appeal letters.
-          </p>
-        </div>
-
-        <Link
-          to="/new"
-          className="inline-flex min-h-11 items-center rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground hover:opacity-90 shadow-sm shrink-0"
-        >
-          <FilePlus className="size-4 mr-2" />
-          <span>New case</span>
-        </Link>
-      </div>
-
-      {/* Daily Quota Card */}
-      <div className="rounded-xl border bg-card p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span className="grid size-9 place-items-center rounded-lg bg-secondary text-secondary-foreground shrink-0">
-            <Gauge className="size-4.5" />
-          </span>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-sm text-primary">Daily Analysis Quota</span>
-              <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded font-mono">
-                {analysesToday}/3 analyses used
-              </span>
+    <PageTransition>
+      <main className="min-h-screen bg-cream py-8 md:py-12 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-5xl space-y-8">
+          
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-mint text-teal text-xs font-mono font-medium mb-1.5">
+                <ShieldCheck className="size-3.5 text-teal" />
+                <span>Policyholder Adjudication Portal</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-medium tracking-tight text-ink">
+                My cases
+              </h1>
+              <p className="mt-1 text-sm text-muted">
+                Track audits, inspect policy comparisons, and download formal grievance appeal drafts.
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Limit of 3 analyses per user per day. Resets every midnight.
-            </p>
-          </div>
-        </div>
 
-        <div>
-          <span className="text-xs font-semibold text-accent px-3 py-1.5 rounded-lg bg-secondary">
-            {remainingToday} free analyses left today
-          </span>
-        </div>
-      </div>
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => navigate('/new')}
+              className="shrink-0"
+            >
+              <FilePlus className="size-4 mr-1.5" />
+              <span>New case</span>
+            </Button>
+          </div>
 
-      {/* Case List */}
-      {cases.length === 0 ? (
-        <div className="rounded-xl border border-dashed bg-card p-12 text-center max-w-md mx-auto space-y-4">
-          <div className="grid size-12 place-items-center rounded-full bg-muted text-muted-foreground mx-auto">
-            <FileText className="size-6" />
-          </div>
-          <h3 className="text-base font-semibold text-primary">No claim cases yet</h3>
-          <p className="text-xs text-muted-foreground">
-            Upload your health insurance documents to check for contestable grounds, or test with a sample claim.
-          </p>
-          <div className="flex items-center justify-center gap-2 pt-2">
-            <Link
-              to="/new"
-              className="inline-flex min-h-11 items-center rounded-lg bg-accent px-4 text-xs font-medium text-accent-foreground"
-            >
-              Start new case
-            </Link>
-            <button
-              type="button"
-              onClick={() => {
-                loadSampleCase('case-waiting-period-cataract');
-                navigate('/result');
-              }}
-              className="inline-flex min-h-11 items-center rounded-lg border bg-card px-4 text-xs font-medium text-primary hover:bg-muted/50"
-            >
-              <Sparkles className="size-3.5 mr-1 text-warning" />
-              <span>Load Cataract sample</span>
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="grid gap-3">
-          {cases.map((c) => (
-            <div
-              key={c.id}
-              onClick={() => handleOpenCase(c)}
-              className="rounded-xl border bg-card p-5 hover:border-accent/60 transition-colors cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4"
-            >
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
-                    {c.case_number}
-                  </span>
-                  <VerdictBadge verdict={c.overall_verdict} size="sm" />
-                  {c.is_sample && (
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-warning-soft text-warning-foreground">
-                      Sample case
-                    </span>
-                  )}
+          {/* 4 KPI Statistics Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="rounded-2xl border border-line bg-surface p-5 space-y-2 shadow-soft hover:border-teal/50 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-mono uppercase text-muted">Total Audits</span>
+                <div className="flex size-7 items-center justify-center rounded-lg bg-mint text-teal">
+                  <FileText className="size-3.5" />
                 </div>
+              </div>
+              <p className="text-2xl sm:text-3xl font-medium text-ink">
+                <CountUp end={totalCases} />
+              </p>
+              <span className="text-[10px] text-muted block">Cases stored locally</span>
+            </div>
 
-                <div>
-                  <h3 className="font-semibold text-base text-primary">
-                    {c.patient_name} • {c.insurer_name}
+            <div className="rounded-2xl border border-line bg-surface p-5 space-y-2 shadow-soft hover:border-teal/50 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-mono uppercase text-muted">Disputed Relief</span>
+                <div className="flex size-7 items-center justify-center rounded-lg bg-mint text-teal">
+                  <Scale className="size-3.5" />
+                </div>
+              </div>
+              <p className="text-2xl sm:text-3xl font-medium text-ink">
+                ₹<CountUp end={totalDisputed} useIndianFormat={true} />
+              </p>
+              <span className="text-[10px] text-muted block">Potential claim recovery</span>
+            </div>
+
+            <div className="rounded-2xl border border-line bg-surface p-5 space-y-2 shadow-soft hover:border-teal/50 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-mono uppercase text-muted">Contestable Rate</span>
+                <div className="flex size-7 items-center justify-center rounded-lg bg-mint text-teal">
+                  <CheckCircle2 className="size-3.5" />
+                </div>
+              </div>
+              <p className="text-2xl sm:text-3xl font-medium text-teal">
+                <CountUp end={contestableRate} suffix="%" />
+              </p>
+              <span className="text-[10px] text-muted block">{contestableCases.length} of {totalCases} claims contestable</span>
+            </div>
+
+            <div className="rounded-2xl border border-line bg-surface p-5 space-y-2 shadow-soft hover:border-teal/50 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-mono uppercase text-muted">Daily Fair Quota</span>
+                <div className="flex size-7 items-center justify-center rounded-lg bg-mint text-teal font-mono font-bold text-xs">
+                  {remainingToday}/3
+                </div>
+              </div>
+              <p className="text-2xl sm:text-3xl font-medium text-ink">
+                {remainingToday} <span className="text-sm font-normal text-muted">free</span>
+              </p>
+              <span className="text-[10px] text-muted block">24h DPDP auto-purge</span>
+            </div>
+          </div>
+
+          {/* Visual Claims Distribution Chart (Only when data exists) */}
+          {totalCases > 0 && (
+            <div className="rounded-2xl border border-line bg-surface p-5 sm:p-6 space-y-3.5 shadow-soft">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="size-4 text-teal" />
+                  <h3 className="text-xs font-mono uppercase tracking-wider text-ink font-semibold">
+                    Claim Adjudication Distribution
                   </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Policy: <span className="font-mono">{c.policy_number}</span> • Claim: <span className="font-mono">{c.claim_number}</span>
-                  </p>
                 </div>
-
-                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                  <span>
-                    Claim: <strong className="text-foreground">₹{Number(c.claim_amount).toLocaleString('en-IN')}</strong>
+                <div className="flex items-center gap-4 text-xs font-mono text-muted">
+                  <span className="flex items-center gap-1.5">
+                    <span className="size-2 rounded-full bg-teal" />
+                    <span>Contestable ({contestableCases.length})</span>
                   </span>
-                  <span>•</span>
-                  <span>
-                    Deducted: <strong className="text-danger">₹{Number(c.deducted_amount).toLocaleString('en-IN')}</strong>
-                  </span>
-                  <span>•</span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="size-3 text-warning" />
-                    <span>{formatCountdown(c.expires_at)}</span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="size-2 rounded-full bg-muted" />
+                    <span>Sound ({soundCases.length})</span>
                   </span>
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0">
-                {c.overall_verdict === 'grounds_to_contest' && c.letters && c.letters.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={(e) => handleOpenAppeal(c, e)}
-                    className="inline-flex min-h-11 items-center rounded-lg bg-secondary px-3.5 text-xs font-medium text-secondary-foreground hover:opacity-90"
-                  >
-                    View appeal
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => handleOpenCase(c)}
-                  className="inline-flex min-h-11 items-center rounded-lg border bg-card px-3.5 text-xs font-medium text-primary hover:bg-muted/50"
-                >
-                  <span>Results</span>
-                  <ArrowRight className="size-3.5 ml-1" />
-                </button>
-
-                {deleteConfirmId === c.id ? (
-                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      type="button"
-                      onClick={(e) => handleDelete(c.id, e)}
-                      className="px-2.5 py-1.5 text-xs font-semibold bg-danger text-destructive-foreground rounded-lg"
-                    >
-                      Delete
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeleteConfirmId(null)}
-                      className="px-2 py-1.5 text-xs text-muted-foreground"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeleteConfirmId(c.id);
-                    }}
-                    className="p-2 text-muted-foreground hover:text-danger rounded-lg transition-colors"
-                    title="Delete case immediately"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
+              {/* Segmented Horizontal Bar */}
+              <div className="w-full bg-line h-3 rounded-full overflow-hidden flex">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${contestablePercent}%` }}
+                  transition={{ duration: 0.8, ease: 'easeOut' }}
+                  className="bg-teal h-full"
+                  title={`Contestable: ${contestableCases.length} (${Math.round(contestablePercent)}%)`}
+                />
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${soundPercent}%` }}
+                  transition={{ duration: 0.8, ease: 'easeOut', delay: 0.1 }}
+                  className="bg-muted h-full"
+                  title={`Sound: ${soundCases.length} (${Math.round(soundPercent)}%)`}
+                />
+                {otherPercent > 0 && (
+                  <div 
+                    style={{ width: `${otherPercent}%` }}
+                    className="bg-amber h-full opacity-60"
+                    title={`Needs Info: ${Math.round(otherPercent)}%`}
+                  />
                 )}
               </div>
             </div>
-          ))}
+          )}
+
+          {/* Case List or Empty State */}
+          {cases.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-line bg-surface/80 p-12 text-center max-w-md mx-auto space-y-5 shadow-soft">
+              <div className="flex justify-center">
+                <Mascot mood="idle" size={90} />
+              </div>
+              <div>
+                <h3 className="text-lg font-medium text-ink">No claim cases yet</h3>
+                <p className="text-xs text-muted mt-1 leading-relaxed">
+                  Upload your rejection letter to find contestable grounds, or test with a pre-loaded sample.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={() => navigate('/new')}
+                  className="w-full sm:w-auto justify-center"
+                >
+                  <span>Start new case</span>
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={() => {
+                    loadSampleCase('case-waiting-period-cataract');
+                    navigate('/result');
+                  }}
+                  className="w-full sm:w-auto justify-center"
+                >
+                  <Sparkles className="size-3.5 mr-1 text-amber" />
+                  <span>Try Cataract sample</span>
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {cases.map((c) => {
+                const isContestable = c.overall_verdict === 'grounds_to_contest';
+
+                return (
+                  <motion.div
+                    key={c.id}
+                    whileHover={{ y: -2 }}
+                    onClick={() => handleOpenCase(c)}
+                    className="rounded-2xl border border-line bg-surface p-5 hover:border-teal/60 transition-all cursor-pointer shadow-soft flex flex-col md:flex-row md:items-center justify-between gap-4"
+                  >
+                    <div className="space-y-2 flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs text-muted bg-cream px-2.5 py-0.5 rounded-full border border-line">
+                          {c.case_number}
+                        </span>
+                        <Tag variant={isContestable ? 'strong' : 'weak'}>
+                          {isContestable ? 'Contestable' : 'Sound Repudiation'}
+                        </Tag>
+                        {c.is_sample && (
+                          <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-[#FAEEDA] text-[#633806] border border-[#F2D7AE]">
+                            Sample Case
+                          </span>
+                        )}
+                      </div>
+
+                      <div>
+                        <h3 className="text-base font-medium text-ink">
+                          {c.patient_name} • {c.insurer_name}
+                        </h3>
+                        <p className="text-xs text-muted mt-0.5 font-mono">
+                          Policy: {c.policy_number} • Claim: {c.claim_number}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted pt-0.5">
+                        <span>
+                          Claim: <strong className="text-ink font-medium">₹{Number(c.claim_amount).toLocaleString('en-IN')}</strong>
+                        </span>
+                        <span>•</span>
+                        <span>
+                          Deducted: <strong className="text-[#791F1F] font-medium">₹{Number(c.deducted_amount).toLocaleString('en-IN')}</strong>
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1 font-mono text-[11px] text-muted">
+                          <Clock className="size-3 text-amber" />
+                          <span>{formatCountdown(c.expires_at)}</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-line">
+                      {isContestable && c.letters && c.letters.length > 0 && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={(e) => handleOpenAppeal(c, e)}
+                        >
+                          <span>View appeal</span>
+                        </Button>
+                      )}
+
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => handleOpenCase(c)}
+                      >
+                        <span>Audit result</span>
+                      </Button>
+
+                      {deleteConfirmId === c.id ? (
+                        <div className="flex items-center gap-1.5 pl-2" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            onClick={(e) => handleDelete(c.id, e)}
+                            className="px-2.5 py-1 text-xs font-mono font-medium rounded-full bg-[#791F1F] text-surface cursor-pointer"
+                          >
+                            Confirm Delete
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteConfirmId(null)}
+                            className="px-2 py-1 text-xs text-muted hover:text-ink cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteConfirmId(c.id);
+                          }}
+                          className="p-2 text-muted hover:text-[#791F1F] rounded-lg transition-colors cursor-pointer"
+                          title="Purge case immediately"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
-    </main>
+      </main>
+    </PageTransition>
   );
 };

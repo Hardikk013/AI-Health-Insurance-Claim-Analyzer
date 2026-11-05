@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from './supabase';
-import { ClaimCase, CaseDocument, UserProfile, OfficialRule } from '../types';
+import { ClaimCase, UserProfile, OfficialRule } from '../types';
 import { OFFICIAL_RULES } from '../data/officialRules';
 import { SAMPLE_CASES } from '../data/sampleCases';
 
@@ -193,25 +193,47 @@ export const purgeAllUserData = (): void => {
 };
 
 // ==============================================================================
-// Admin Panel Management & Quota Overrides
+// Admin Panel Management & Quota Overrides (Zero Client-Side Passcode Storage)
 // ==============================================================================
-const ADMIN_AUTH_KEY = 'claimfight_admin_auth';
+const ADMIN_AUTH_KEY = 'claimfight_admin_auth_token';
 const ADMIN_MODE_KEY = 'claimfight_admin_unlimited_mode';
-export const VALID_ADMIN_PINS = ['admin2026', 'admin', 'claimfight2026'];
 
 export const isAdminAuthenticated = (): boolean => {
-  return localStorage.getItem(ADMIN_AUTH_KEY) === 'true';
+  const token = sessionStorage.getItem(ADMIN_AUTH_KEY);
+  return Boolean(token && token.length > 5);
 };
 
-export const authenticateAdmin = (passcode: string): boolean => {
-  if (VALID_ADMIN_PINS.includes(passcode.trim().toLowerCase())) {
-    localStorage.setItem(ADMIN_AUTH_KEY, 'true');
-    return true;
+export const getAdminAuthToken = (): string | null => {
+  return sessionStorage.getItem(ADMIN_AUTH_KEY);
+};
+
+export const authenticateAdmin = async (passcode: string): Promise<boolean> => {
+  try {
+    const res = await fetch('/api/admin/verify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ passcode: passcode.trim() })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.token) {
+        sessionStorage.setItem(ADMIN_AUTH_KEY, data.token);
+        localStorage.removeItem(ADMIN_AUTH_KEY); // purge any legacy insecure localStorage tokens
+        return true;
+      }
+    }
+    return false;
+  } catch (err) {
+    console.warn('[ClaimFight Auth] Admin verification network error:', err);
+    return false;
   }
-  return false;
 };
 
 export const logoutAdmin = (): void => {
+  sessionStorage.removeItem(ADMIN_AUTH_KEY);
   localStorage.removeItem(ADMIN_AUTH_KEY);
 };
 

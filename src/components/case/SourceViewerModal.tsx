@@ -24,6 +24,18 @@ export const SourceViewerModal: React.FC<SourceViewerModalProps> = ({
   ocrConfidence = 98.6,
   downloadUrl
 }) => {
+  // Accessible Keyboard Handler: ESC closes modal
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const docTypeLabels = {
@@ -33,18 +45,26 @@ export const SourceViewerModal: React.FC<SourceViewerModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div 
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="source-viewer-title"
         className="relative w-full max-w-xl bg-card text-card-foreground rounded-xl shadow-2xl border border-border overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-100"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b bg-card">
           <div className="flex items-center gap-2.5">
-            <span className="grid size-8 place-items-center rounded-lg bg-secondary text-secondary-foreground">
+            <span className="grid size-8 place-items-center rounded-lg bg-secondary text-secondary-foreground" aria-hidden="true">
               <FileText className="size-4" />
             </span>
             <div>
-              <h3 className="font-semibold text-sm text-primary leading-tight">{documentTitle}</h3>
+              <h3 id="source-viewer-title" className="font-semibold text-sm text-primary leading-tight">{documentTitle}</h3>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {docTypeLabels[docType]} • Page {pageNumber}
               </p>
@@ -54,9 +74,10 @@ export const SourceViewerModal: React.FC<SourceViewerModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            aria-label="Close document source viewer"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-teal focus-visible:outline-none transition-colors"
           >
-            <X className="size-4.5" />
+            <X className="size-4.5" aria-hidden="true" />
           </button>
         </div>
 

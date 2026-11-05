@@ -1,193 +1,168 @@
-import React, { useRef, useState } from 'react';
-import { UploadCloud, Camera, FileCheck, AlertCircle, X } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { UploadCloud, Camera, FileCheck, AlertCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-interface DropZoneProps {
-  label: string;
-  description: string;
-  documentType: 'rejection_letter' | 'policy_document' | 'discharge_summary';
-  selectedFile: File | null;
-  onFileSelect: (file: File | null) => void;
-  required?: boolean;
+interface DropzoneProps {
+  onFileSelect: (file: File) => void;
+  title?: string;
+  subtitle?: string;
+  acceptedTypes?: string[];
+  className?: string;
 }
 
-export const DropZone: React.FC<DropZoneProps> = ({
-  label,
-  description,
-  documentType,
-  selectedFile,
+export const Dropzone: React.FC<DropzoneProps> = ({
   onFileSelect,
-  required = true
+  title = 'Drop your rejection letter here',
+  subtitle = 'PDF, photo or screenshot. Policy and discharge summary can be added next.',
+  acceptedTypes = ['.pdf', '.jpg', '.jpeg', '.png'],
+  className = '',
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  const validateAndSetFile = (file: File) => {
+  const validateAndPass = (file: File) => {
     setErrorMessage(null);
+    const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+    const isAllowedExt = acceptedTypes.includes(ext);
+    const isAllowedMime = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'].includes(file.type);
 
-    const MAX_SIZE_BYTES = 15 * 1024 * 1024;
-    if (file.size > MAX_SIZE_BYTES) {
-      setErrorMessage(`File is too large (${(file.size / (1024 * 1024)).toFixed(1)} MB). Maximum allowed is 15 MB.`);
+    if (!isAllowedExt && !isAllowedMime) {
+      setErrorMessage(`Please select a valid document: PDF, JPG or PNG (received ${file.name})`);
       return;
     }
 
-    const validMimes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
-    const validExts = ['.pdf', '.jpg', '.jpeg', '.png'];
-    const hasValidExt = validExts.some(ext => file.name.toLowerCase().endsWith(ext));
-
-    if (!validMimes.includes(file.type) && !hasValidExt) {
-      setErrorMessage('Invalid format. Please upload a PDF, JPG, or PNG document.');
+    if (file.size > 15 * 1024 * 1024) {
+      setErrorMessage(`File is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Maximum allowed is 15MB.`);
       return;
     }
 
     onFileSelect(file);
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      validateAndSetFile(e.dataTransfer.files[0]);
-    }
-  };
-
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      validateAndSetFile(e.target.files[0]);
-    }
-  };
-
-  const handleContainerClick = () => {
-    if (!selectedFile) {
-      fileInputRef.current?.click();
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      validateAndPass(e.dataTransfer.files[0]);
     }
   };
 
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between">
-        <label className="text-sm font-semibold text-primary flex items-center gap-1">
-          <span>{label}</span>
-          {required && <span className="text-danger">*</span>}
-        </label>
-        <span className="text-xs text-muted-foreground">PDF, JPG, PNG (Max 15MB)</span>
-      </div>
-
-      <div
-        onClick={handleContainerClick}
-        onKeyDown={(e) => {
-          if (!selectedFile && (e.key === 'Enter' || e.key === ' ')) {
-            e.preventDefault();
-            handleContainerClick();
-          }
-        }}
-        tabIndex={selectedFile ? -1 : 0}
-        role={selectedFile ? undefined : 'button'}
-        aria-label={`Click to upload ${label}`}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setIsDragOver(true);
-        }}
-        onDragLeave={() => setIsDragOver(false)}
+    <div className={`w-full ${className}`}>
+      <motion.div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`relative border-2 border-dashed rounded-xl p-5 text-center transition-all bg-card flex flex-col items-center justify-center min-h-[145px] select-none ${
-          !selectedFile ? 'cursor-pointer hover:shadow-xs' : ''
-        } ${
-          isDragOver
-            ? 'border-accent bg-secondary/30 scale-[1.005]'
-            : selectedFile
-            ? 'border-success bg-success-soft/30'
-            : 'border-border hover:border-accent/60 hover:bg-muted/30'
+        onClick={() => fileInputRef.current?.click()}
+        animate={{
+          scale: isDragOver ? 1.01 : 1,
+          backgroundColor: isDragOver ? 'rgba(217, 239, 234, 0.45)' : 'var(--surface)',
+          borderColor: isDragOver ? 'var(--teal)' : 'var(--teal)',
+        }}
+        transition={{ duration: 0.2 }}
+        className={`relative flex flex-col items-center justify-center p-8 sm:p-12 rounded-2xl border-2 cursor-pointer transition-all ${
+          isDragOver ? 'border-solid shadow-soft-lg' : 'border-dashed border-teal/60 hover:border-teal bg-surface shadow-soft hover:shadow-soft-lg'
         }`}
       >
         <input
           ref={fileInputRef}
           type="file"
-          accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-          onChange={handleFileInput}
+          accept={acceptedTypes.join(',')}
           className="hidden"
-          id={`upload-${documentType}`}
+          onChange={(e) => {
+            if (e.target.files && e.target.files[0]) {
+              validateAndPass(e.target.files[0]);
+            }
+          }}
         />
 
-        {/* Mobile camera capture */}
         <input
           ref={cameraInputRef}
           type="file"
           accept="image/*"
           capture="environment"
-          onChange={handleFileInput}
           className="hidden"
-          id={`camera-${documentType}`}
+          onChange={(e) => {
+            if (e.target.files && e.target.files[0]) {
+              validateAndPass(e.target.files[0]);
+            }
+          }}
         />
 
-        {selectedFile ? (
-          <div 
-            onClick={(e) => e.stopPropagation()} 
-            className="w-full flex items-center justify-between bg-card border border-success/40 rounded-lg p-3 shadow-xs cursor-default"
+        {/* Gentle Floating Cloud Icon */}
+        <motion.div
+          animate={
+            isDragOver
+              ? { scale: 1.15, y: -4 }
+              : { y: [0, -5, 0], scale: 1 }
+          }
+          transition={
+            isDragOver
+              ? { duration: 0.2 }
+              : { repeat: Infinity, duration: 2.2, ease: 'easeInOut' }
+          }
+          className="flex size-14 items-center justify-center rounded-full bg-mint text-teal mb-4"
+        >
+          <UploadCloud className="size-7" />
+        </motion.div>
+
+        {/* Text */}
+        <h3 className="text-lg sm:text-xl font-medium tracking-tight text-ink text-center">
+          {title}
+        </h3>
+        <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground text-center max-w-md leading-relaxed">
+          {subtitle}
+        </p>
+
+        {/* Action Pills */}
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-cream text-xs font-medium text-ink border border-line">
+            <FileCheck className="size-3.5 text-teal" />
+            <span>Click or drag file</span>
+          </span>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              cameraInputRef.current?.click();
+            }}
+            className="sm:hidden inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-cream text-xs font-medium text-ink border border-line hover:bg-mint"
           >
-            <div className="flex items-center gap-3 truncate">
-              <div className="size-9 rounded-lg bg-success-soft text-success flex items-center justify-center shrink-0">
-                <FileCheck className="size-4.5" />
-              </div>
-              <div className="text-left truncate">
-                <p className="text-sm font-medium text-foreground truncate max-w-xs md:max-w-md">
-                  {selectedFile.name}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB • Ready for OCR &amp; analysis
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onFileSelect(null);
-              }}
-              className="p-1.5 text-muted-foreground hover:text-danger rounded-md transition-colors"
-              title="Remove file"
-            >
-              <X className="size-4" />
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-2 pointer-events-none">
-            <div className="size-10 rounded-full bg-muted flex items-center justify-center text-accent">
-              <UploadCloud className="size-5" />
-            </div>
+            <Camera className="size-3.5 text-teal" />
+            <span>Take photo</span>
+          </button>
+        </div>
 
-            <div>
-              <p className="text-xs sm:text-sm font-medium text-foreground">
-                <span className="text-accent underline font-semibold">Click anywhere to browse</span> or drag &amp; drop document here
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
-            </div>
+        {/* Privacy Note */}
+        <p className="mt-4 text-[11px] font-mono text-muted text-center tracking-wider uppercase">
+          DELETED AUTOMATICALLY AFTER 24 HOURS · NO SIGN-UP NEEDED
+        </p>
+      </motion.div>
 
-            {/* Camera photo button for mobile */}
-            <div className="pt-0.5 pointer-events-auto">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  cameraInputRef.current?.click();
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium bg-muted text-foreground hover:bg-muted/80 rounded-md border border-border transition-colors"
-              >
-                <Camera className="size-3 text-accent" />
-                <span>Snap photo with camera</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {errorMessage && (
-          <div className="mt-2.5 flex items-center gap-1.5 text-xs text-destructive bg-danger-soft px-3 py-1.5 rounded-lg border border-destructive/20 w-full text-left">
-            <AlertCircle className="size-3.5 shrink-0" />
-            <span>{errorMessage}</span>
-          </div>
-        )}
-      </div>
+      {/* Error notification */}
+      {errorMessage && (
+        <motion.div
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-2.5 p-3 rounded-xl border border-red-200 bg-[#FCEBEB] text-xs text-[#791F1F] flex items-center gap-2"
+        >
+          <AlertCircle className="size-4 shrink-0" />
+          <span>{errorMessage}</span>
+        </motion.div>
+      )}
     </div>
   );
 };

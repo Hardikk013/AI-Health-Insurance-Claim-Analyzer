@@ -1,29 +1,37 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { MailCheck, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { MailCheck } from 'lucide-react';
+import { Mascot } from '../../components/common/Mascot';
+import { Button } from '../../components/common/Button';
+import { PageTransition } from '../../components/common/PageTransition';
 
 export const VerifyEmailPage: React.FC = () => {
-  return (
-    <main className="mx-auto w-full max-w-md px-4 py-16">
-      <div className="rounded-xl border bg-card p-6 md:p-8 space-y-4 text-center shadow-xs">
-        <span className="grid size-10 place-items-center rounded-lg bg-secondary text-secondary-foreground mx-auto">
-          <MailCheck className="size-5" />
-        </span>
-        <h1 className="text-2xl font-semibold tracking-tight text-primary">Verify your email</h1>
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          We have sent a verification message to your email. Click the confirmation link to activate your ClaimFight account.
-        </p>
+  const navigate = useNavigate();
 
-        <div className="pt-2">
-          <Link
-            to="/login"
-            className="inline-flex min-h-11 items-center rounded-lg bg-accent px-4 text-xs font-medium text-accent-foreground hover:opacity-90 shadow-sm"
-          >
-            <span>Proceed to sign in</span>
-            <ArrowRight className="size-3.5 ml-1.5" />
-          </Link>
+  return (
+    <PageTransition>
+      <main className="min-h-[calc(100vh-140px)] bg-cream flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md rounded-2xl border border-line bg-surface p-6 sm:p-8 space-y-5 text-center shadow-soft">
+          <div className="flex justify-center mb-1">
+            <Mascot mood="happy" size={72} />
+          </div>
+          <h1 className="text-2xl font-medium tracking-tight text-ink">Verify your email</h1>
+          <p className="text-xs text-muted leading-relaxed">
+            We have sent a confirmation message to your email. Click the verification link inside to activate your ClaimFight account.
+          </p>
+
+          <div className="pt-2">
+            <Button
+              variant="primary"
+              size="md"
+              className="w-full justify-center"
+              onClick={() => navigate('/login')}
+            >
+              <span>Proceed to sign in</span>
+            </Button>
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </PageTransition>
   );
 };

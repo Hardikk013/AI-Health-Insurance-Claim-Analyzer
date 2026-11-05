@@ -1,79 +1,122 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { TermTooltip } from '../components/common/TermTooltip';
+import { useNavigate } from 'react-router-dom';
+import { Sparkles, ArrowRight, ShieldCheck, Scale, FileText, CheckCircle2 } from 'lucide-react';
+import { Button } from '../components/common/Button';
+import { Tag } from '../components/common/Tag';
+import { Mascot } from '../components/common/Mascot';
+import { PageTransition } from '../components/common/PageTransition';
 
 export const HowItWorksPage: React.FC = () => {
+  const navigate = useNavigate();
+
+  const steps = [
+    {
+      step: '01',
+      title: 'Multimodal Vision Document Reading',
+      desc: 'Google Gemini 2.0 Flash inspects the insurer repudiation notice, policy terms booklet, and hospital discharge summary for verbatim clauses, doctor stamps, and dates.',
+    },
+    {
+      step: '02',
+      title: 'Policy Clause Isolation',
+      desc: 'Isolates waiting period clauses (Clause 4.1/4.2), specific illness exclusions, room rent caps, and pre-existing disease disclosure terms.',
+    },
+    {
+      step: '03',
+      title: 'Insurer Repudiation Fact-Checking',
+      desc: 'Extracts the exact clause numbers quoted by the insurer, along with the billed claim amount, approved sum, and disputed deductions.',
+    },
+    {
+      step: '04',
+      title: 'Hospital Clinical Record Cross-Correlation',
+      desc: 'Matches clinical history, surgical procedure, and primary diagnosis from the discharge summary against the insurer’s stated reasons.',
+    },
+    {
+      step: '05',
+      title: 'Deterministic Date & Math Verification',
+      desc: 'Executes independent calendar arithmetic for active policy tenure and continuity credit under IRDAI guidelines (never guessed by AI).',
+    },
+    {
+      step: '06',
+      title: 'Appellate Representation & Ombudsman Drafting',
+      desc: 'Generates a ready-to-sign formal grievance appeal letter and Insurance Ombudsman complaint citing binding regulations and precedents.',
+    },
+  ];
+
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8 md:py-12">
-      <h1 className="text-3xl font-semibold tracking-tight text-primary">How it works</h1>
-      <p className="mt-2 max-w-2xl text-muted-foreground">
-        ClaimFight works on individual and family floater health policies in India. It explains terms like{' '}
-        <TermTooltip termKey="Proportionate Deduction">
-          proportionate deduction
-        </TermTooltip>{' '}
-        and the{' '}
-        <TermTooltip termKey="Ombudsman">
-          ombudsman
-        </TermTooltip>{' '}
-        along the way.
-      </p>
+    <PageTransition>
+      <main className="min-h-screen bg-cream py-8 md:py-12 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-5xl space-y-10">
+          
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-mint text-teal text-xs font-mono font-medium">
+                <Sparkles className="size-3.5 text-amber" />
+                <span>Deterministic AI Architecture</span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl font-medium tracking-tight text-ink">
+                How ClaimFight works
+              </h1>
+              <p className="max-w-2xl text-sm text-muted leading-relaxed">
+                ClaimFight audits individual and family floater health policies in India under official IRDAI circulars and Insurance Ombudsman Rules.
+              </p>
+            </div>
 
-      <ol className="mt-8 grid gap-4 md:grid-cols-2">
-        <li className="rounded-xl border bg-card p-5">
-          <span className="text-sm font-semibold text-accent">Step 1</span>
-          <h2 className="mt-1 text-lg font-semibold text-primary">Read the documents</h2>
-          <p className="mt-1 text-muted-foreground">
-            Text is pulled from PDFs and phone photos, page by page. We note when a photo is hard to read.
-          </p>
-        </li>
+            <div className="hidden sm:block shrink-0">
+              <Mascot mood="idle" size={90} />
+            </div>
+          </div>
 
-        <li className="rounded-xl border bg-card p-5">
-          <span className="text-sm font-semibold text-accent">Step 2</span>
-          <h2 className="mt-1 text-lg font-semibold text-primary">Find policy rules</h2>
-          <p className="mt-1 text-muted-foreground">
-            Exclusions, waiting periods, sub-limits, co-pay, room-rent caps, start date and renewals.
-          </p>
-        </li>
+          {/* 6 Step Grid */}
+          <div className="grid gap-4 md:grid-cols-2">
+            {steps.map((st) => (
+              <div
+                key={st.step}
+                className="rounded-2xl border border-line bg-surface p-6 space-y-3 shadow-soft hover:border-teal/50 transition-all"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-xs font-semibold text-teal bg-mint/40 px-2.5 py-1 rounded-full border border-teal/20">
+                    Step {st.step}
+                  </span>
+                  <CheckCircle2 className="size-4 text-teal" />
+                </div>
+                <h2 className="text-lg font-medium text-ink">
+                  {st.title}
+                </h2>
+                <p className="text-xs text-muted leading-relaxed">
+                  {st.desc}
+                </p>
+              </div>
+            ))}
+          </div>
 
-        <li className="rounded-xl border bg-card p-5">
-          <span className="text-sm font-semibold text-accent">Step 3</span>
-          <h2 className="mt-1 text-lg font-semibold text-primary">Find the insurer's reason</h2>
-          <p className="mt-1 text-muted-foreground">
-            The reason given, the clause cited, and the claimed, approved and cut amounts.
-          </p>
-        </li>
+          {/* Bottom CTA */}
+          <div className="rounded-2xl border border-line bg-surface p-8 text-center space-y-4 shadow-soft max-w-xl mx-auto">
+            <h3 className="text-xl font-medium text-ink">Ready to audit your rejected claim?</h3>
+            <p className="text-xs text-muted leading-relaxed">
+              Upload your documents or explore a pre-loaded sample case to see the engine in action.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <Button
+                variant="primary"
+                size="md"
+                onClick={() => navigate('/new')}
+              >
+                <span>Upload rejection letter</span>
+                <ArrowRight className="size-4 ml-1.5" />
+              </Button>
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => navigate('/samples')}
+              >
+                <span>Explore sample cases</span>
+              </Button>
+            </div>
+          </div>
 
-        <li className="rounded-xl border bg-card p-5">
-          <span className="text-sm font-semibold text-accent">Step 4</span>
-          <h2 className="mt-1 text-lg font-semibold text-primary">Compare with the hospital record</h2>
-          <p className="mt-1 text-muted-foreground">
-            Diagnosis, procedure, dates and medical history from the discharge summary.
-          </p>
-        </li>
-
-        <li className="rounded-xl border bg-card p-5">
-          <span className="text-sm font-semibold text-accent">Step 5</span>
-          <h2 className="mt-1 text-lg font-semibold text-primary">Check dates with fixed rules</h2>
-          <p className="mt-1 text-muted-foreground">
-            Was the policy active? Had the waiting period passed? Dates are computed, never guessed.
-          </p>
-        </li>
-
-        <li className="rounded-xl border bg-card p-5">
-          <span className="text-sm font-semibold text-accent">Step 6</span>
-          <h2 className="mt-1 text-lg font-semibold text-primary">Draft your letters</h2>
-          <p className="mt-1 text-muted-foreground">
-            An appeal to the insurer, and an Ombudsman complaint outline if you have grounds.
-          </p>
-        </li>
-      </ol>
-
-      <Link
-        className="mt-8 inline-flex min-h-12 items-center rounded-lg bg-primary px-5 font-medium text-primary-foreground hover:opacity-90 shadow-sm"
-        to="/samples"
-      >
-        See a sample
-      </Link>
-    </main>
+        </div>
+      </main>
+    </PageTransition>
   );
 };

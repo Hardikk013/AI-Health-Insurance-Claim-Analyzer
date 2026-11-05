@@ -49,7 +49,7 @@ export interface DocumentComparisonItem {
 
 export interface OmbudsmanLegalVerification {
   relief_sought_amount: number;
-  statutory_award_limit: number; // ₹30,00,000 under Rule 17(1) of Insurance Ombudsman Rules 2017
+  statutory_award_limit: number; // ₹50,00,000 pecuniary jurisdiction ceiling under CIO/IRDAI operational guidelines
   is_within_award_limit: boolean;
   gro_representation_required: boolean;
   thirty_day_wait_required: boolean;
@@ -136,6 +136,79 @@ export interface AnalysisResponseContract {
   ombudsman_complaint: {
     subject: string;
     body: string;
+  };
+
+  // Requirement 7: Standardized Adjudication Output
+  executive_summary?: string;
+  claim_decision_assessment?: ContestabilityStatus;
+  rejection_reason?: string;
+  relevant_policy_clauses?: Array<{
+    clause_heading: string;
+    page_number: number;
+    quote: string;
+    category?: string;
+    source_document?: string;
+    verification_status?: 'verified' | 'unverified' | 'missing_evidence';
+  }>;
+  evidence_by_document?: {
+    rejection_letter: {
+      document_name: string;
+      quoted_clauses: string[];
+      stated_reasons: string[];
+      financials_mentioned: string[];
+      page_citations: number[];
+    };
+    policy_document: {
+      document_name: string;
+      clauses_identified: string[];
+      waiting_periods_found: string[];
+      room_rent_terms: string[];
+      page_citations: number[];
+    };
+    discharge_summary: {
+      document_name: string;
+      admission_date: string;
+      discharge_date: string;
+      primary_diagnosis: string;
+      procedures_performed: string[];
+      page_citations: number[];
+    };
+  };
+  timeline_comparison?: {
+    policy_inception_date: string | null;
+    policy_expiry_date: string | null;
+    hospital_admission_date: string | null;
+    hospital_discharge_date: string | null;
+    claim_repudiation_date: string | null;
+    active_tenure_days: number | null;
+    continuity_credit_months: number | null;
+    effective_waiting_period_days: number | null;
+    waiting_period_elapsed: boolean | null;
+    timeline_consistency: 'consistent' | 'contradictory' | 'unverified';
+    discrepancy_notes?: string[];
+  };
+  financial_breakdown?: {
+    claimed_amount: number;
+    approved_amount: number;
+    rejected_amount: number;
+    deducted_amount: number;
+    disputed_amount: number;
+    reconciliation_status: 'balanced' | 'discrepancy_detected';
+    deduction_details?: string[];
+  };
+  missing_documents?: string[];
+  potential_grounds_for_appeal?: DocumentComparisonItem[];
+  recommended_next_steps?: Array<{
+    stage: number;
+    authority: string;
+    action: string;
+    statutory_timeline: string;
+    legal_basis: string;
+  }>;
+  confidence_and_limitations?: {
+    confidence_score: number;
+    limitations: string[];
+    evidence_sufficiency: 'sufficient' | 'partial' | 'insufficient';
   };
 }
 

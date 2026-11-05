@@ -216,6 +216,47 @@ To deploy the production database schema:
 
 ---
 
+## 🎨 Design System, Color Tokens & Motion
+
+ClaimFight uses a calming, authoritative design language that instills trust in stressed policyholders.
+
+### 1. 60-30-10 Color System
+All color tokens are declared as semantic CSS custom properties in `src/index.css`:
+- **60% Cream Background (`#F6F4EF`)**: Declared as `--cream`. Provides warmth, reduces visual fatigue, and replaces stark white.
+- **30% Deep Ink (`#12302E`)**: Declared as `--ink`. Used for primary headings, body text, and selected pill containers.
+- **7% Teal (`#1B7F7A`)**: Declared as `--teal`. The primary action color for main CTAs, active indicators, and mascot accents.
+- **3% Amber (`#F2A93B`)**: Declared as `--amber`. Reserved strictly for tiny highlights, badges, and warning accents.
+- **Soft Mint (`#D9EFEA`)**: Declared as `--mint`. Used for positive status tags (`strong`) and soft highlights.
+- **Line Border (`#E2DED5`)**: Declared as `--line`. Soft neutral border color.
+- **Surface (`#FFFFFF`)**: Declared as `--surface`. Card and input background.
+
+### 2. Motion Configuration (`src/config/motion.ts`)
+Animation timings and easings are centralized for instant tuning:
+```typescript
+export const MOTION = {
+  durations: {
+    fast: 0.15,
+    base: 0.3,
+    slow: 0.6,
+    scan: 3.0,
+    gauge: 1.4,
+  },
+  easings: {
+    easeOutCubic: [0.22, 1, 0.36, 1],
+    easeInOut: [0.4, 0, 0.2, 1],
+    spring: { type: 'spring', stiffness: 380, damping: 28 },
+  },
+};
+```
+
+### 3. Accessibility & `prefers-reduced-motion`
+ClaimFight fully complies with WCAG accessibility guidelines. When `prefers-reduced-motion: reduce` is detected via `prefersReducedMotion()` or OS settings:
+- Animated mascot floating and eye-blinking transitions default to static states.
+- Page slide transitions snap instantly without layout shifts.
+- Progress bars and laser scanners render without infinite loops.
+
+---
+
 ## ⚖️ Legal & Regulatory Disclaimer
 
 ClaimFight provides automated information analysis and drafting assistance based on public IRDAI guidelines and published Insurance Ombudsman decisions. **ClaimFight does not provide legal advice, legal representation, or a guarantee of claim payment.** Policyholders should verify cited clauses and dates with official sources before submitting representations.

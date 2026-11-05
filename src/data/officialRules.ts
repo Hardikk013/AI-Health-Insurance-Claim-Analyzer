@@ -19,13 +19,13 @@ export const OFFICIAL_RULES: OfficialRule[] = [
   {
     id: 'rule-ombudsman-financial-cap',
     rule_code: 'OMBUDSMAN_FINANCIAL_CAP',
-    title: 'Financial Ceiling for Insurance Ombudsman',
-    summary: 'The Insurance Ombudsman has statutory power to award compensation up to ₹30 Lakhs (including ex-gratia and expenses). Claims where the disputed relief exceeds ₹30 Lakhs fall outside Ombudsman jurisdiction and must be pursued before the Consumer Commission (NCDRC/State Commission).',
-    authority: 'Insurance Ombudsman Rules 2017 (Amended 2021)',
+    title: 'Pecuniary Jurisdiction Ceiling for Insurance Ombudsman',
+    summary: 'The Insurance Ombudsman has statutory power to award compensation up to ₹50 Lakhs (including ex-gratia and expenses). Claims where the disputed relief exceeds ₹50 Lakhs fall outside Ombudsman jurisdiction and must be pursued before the State or National Consumer Commission (NCDRC).',
+    authority: 'Council for Insurance Ombudsmen (CIO) / Insurance Ombudsman Rules',
     source_url: 'https://www.cioins.co.in',
-    last_verified: '2026-03-01',
+    last_verified: '2026-11-01',
     details: {
-      max_limit_inr: 3000000,
+      max_limit_inr: 5000000,
       currency: 'INR'
     }
   },

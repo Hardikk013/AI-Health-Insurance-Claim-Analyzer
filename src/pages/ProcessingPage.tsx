@@ -12,8 +12,10 @@ import {
   CalendarCheck,
   FileText
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
+import { motion } from 'framer-motion';
 import { useCaseStore } from '../store/useCaseStore';
+import { Mascot } from '../components/common/Mascot';
+import { Button } from '../components/common/Button';
 
 export const ProcessingPage: React.FC = () => {
   const location = useLocation();
@@ -59,13 +61,19 @@ export const ProcessingPage: React.FC = () => {
       };
 
       runAnalysis({ files: filesState })
-        .then((completedCase) => {
+        .then(async (completedCase) => {
           if (completedCase.overall_verdict === 'grounds_to_contest') {
-            confetti({
-              particleCount: 70,
-              spread: 60,
-              origin: { y: 0.6 }
-            });
+            try {
+              const confettiModule = await import('canvas-confetti');
+              const fireConfetti = confettiModule.default || confettiModule;
+              fireConfetti({
+                particleCount: 70,
+                spread: 60,
+                origin: { y: 0.6 }
+              });
+            } catch {
+              // Ignore confetti load error if offline
+            }
           }
           setTimeout(() => {
             navigate('/result');
@@ -78,116 +86,128 @@ export const ProcessingPage: React.FC = () => {
   }, [hasStarted, location.state, runAnalysis, navigate]);
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-8 md:py-12 space-y-8">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight text-primary">
-          Analyzing your documents
-        </h1>
-        <p className="text-sm text-muted-foreground max-w-lg mx-auto">
-          Checking policy clauses, extracting rejection reasons, and recomputing dates with deterministic rules.
-        </p>
-      </div>
-
-      {/* Progress Card */}
-      <div className="rounded-xl border bg-card p-5 space-y-3 shadow-xs">
-        <div className="flex items-center justify-between text-xs">
-          <span className="font-semibold text-primary">
-            Step {Math.min(currentStepIndex + 1, 6)} of 6 ({analysisProgress}%)
-          </span>
-          <span className="flex items-center gap-1 text-muted-foreground">
-            <Clock className="size-3 text-warning" />
-            <span>~{secondsRemaining}s remaining</span>
-          </span>
+    <main className="min-h-[calc(100vh-140px)] bg-cream py-10 px-4">
+      <div className="mx-auto w-full max-w-2xl space-y-8">
+        {/* Thinking Mascot and Header */}
+        <div className="text-center space-y-3">
+          <div className="flex justify-center">
+            <Mascot mood="thinking" size={120} />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-medium tracking-tight text-ink">
+            Analyzing your documents
+          </h1>
+          <p className="text-sm text-muted max-w-md mx-auto leading-relaxed">
+            Reading policy clauses, checking repudiation statements, and recalculating waiting periods with continuity credit.
+          </p>
         </div>
 
-        {/* Progress Track */}
-        <div className="w-full bg-muted h-2.5 rounded-full overflow-hidden">
-          <div
-            className="bg-accent h-full rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${analysisProgress}%` }}
-          />
+        {/* Progress Card */}
+        <div className="rounded-2xl border border-line bg-surface p-5 space-y-3 shadow-soft">
+          <div className="flex items-center justify-between text-xs font-mono">
+            <span className="font-semibold text-ink">
+              Step {Math.min(currentStepIndex + 1, 6)} of 6 ({Math.round(analysisProgress)}%)
+            </span>
+            <span className="flex items-center gap-1 text-muted">
+              <Clock className="size-3.5 text-amber" />
+              <span>~{secondsRemaining}s remaining</span>
+            </span>
+          </div>
+
+          {/* Progress Track */}
+          <div className="w-full bg-cream h-2.5 rounded-full overflow-hidden border border-line">
+            <motion.div
+              className="bg-teal h-full rounded-full"
+              animate={{ width: `${Math.max(analysisProgress, 8)}%` }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
+            />
+          </div>
         </div>
-      </div>
 
-      {/* Step by step list */}
-      <div className="rounded-xl border bg-card divide-y shadow-xs">
-        {analysisSteps.map((step, idx) => {
-          const StepIcon = stepIcons[idx] || ShieldCheck;
-          const isDone = step.status === 'completed';
-          const isRunning = step.status === 'running';
+        {/* Step-by-step audit checklist */}
+        <div className="rounded-2xl border border-line bg-surface divide-y divide-line overflow-hidden shadow-soft">
+          {analysisSteps.map((step, idx) => {
+            const StepIcon = stepIcons[idx] || ShieldCheck;
+            const isDone = step.status === 'completed';
+            const isRunning = step.status === 'running';
 
-          return (
-            <div
-              key={step.step}
-              className={`p-4 flex items-start gap-3.5 transition-opacity ${
-                isRunning ? 'opacity-100 bg-muted/20' : isDone ? 'opacity-90' : 'opacity-40'
-              }`}
-            >
+            return (
               <div
-                className={`size-8 rounded-lg flex items-center justify-center shrink-0 ${
-                  isDone
-                    ? 'bg-success-soft text-success'
-                    : isRunning
-                    ? 'bg-secondary text-accent animate-pulse'
-                    : 'bg-muted text-muted-foreground'
+                key={step.step}
+                className={`p-4 flex items-start gap-3.5 transition-colors ${
+                  isRunning ? 'bg-mint/30' : isDone ? 'bg-surface' : 'bg-surface/60 opacity-60'
                 }`}
               >
-                {isDone ? (
-                  <CheckCircle2 className="size-4" />
-                ) : isRunning ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <StepIcon className="size-4" />
-                )}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-semibold text-sm text-primary">
-                    Step {step.step}: {step.name}
-                  </h4>
-                  <span className="text-[11px] font-mono text-muted-foreground">
-                    {step.status === 'completed' ? 'Done' : step.status === 'running' ? 'Running' : `~${step.estimatedSeconds}s`}
-                  </span>
+                <div
+                  className={`size-8 rounded-xl flex items-center justify-center shrink-0 ${
+                    isDone
+                      ? 'bg-mint text-teal'
+                      : isRunning
+                      ? 'bg-teal text-surface animate-pulse'
+                      : 'bg-cream text-muted border border-line'
+                  }`}
+                >
+                  {isDone ? (
+                    <CheckCircle2 className="size-4" />
+                  ) : isRunning ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <StepIcon className="size-4" />
+                  )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {step.description}
-                </p>
-                {isRunning && step.detailMessage && (
-                  <p className="text-xs text-accent mt-1 font-medium">
-                    ↳ {step.detailMessage}
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-sm text-ink">
+                      Step {step.step}: {step.name}
+                    </h4>
+                    <span className="text-[11px] font-mono text-muted uppercase">
+                      {step.status === 'completed' ? 'Done' : step.status === 'running' ? 'Active' : `~${step.estimatedSeconds}s`}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted mt-0.5 leading-normal">
+                    {step.description}
                   </p>
-                )}
+                  {isRunning && step.detailMessage && (
+                    <p className="text-xs text-teal mt-1 font-medium font-mono">
+                      ↳ {step.detailMessage}
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {analysisError && (
+          <div className="p-5 bg-[#FCEBEB] border border-[#791F1F]/30 rounded-2xl text-xs text-[#791F1F] space-y-3 shadow-soft">
+            <div className="flex items-start gap-2.5">
+              <AlertCircle className="size-5 shrink-0 text-[#791F1F] mt-0.5" />
+              <div>
+                <p className="font-semibold text-sm text-[#791F1F]">Analysis Notification</p>
+                <p className="mt-1 leading-relaxed text-[#791F1F]/90">{analysisError}</p>
               </div>
             </div>
-          );
-        })}
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setHasStarted(false);
+                  setSecondsRemaining(55);
+                }}
+                className="px-4 py-2 text-xs font-mono font-medium rounded-full bg-teal text-surface cursor-pointer hover:opacity-90 transition-opacity"
+              >
+                Retry Analysis
+              </button>
+              <Link
+                to="/new"
+                className="px-4 py-2 text-xs font-mono font-medium rounded-full bg-surface border border-line text-ink hover:bg-cream transition-colors"
+              >
+                Back to Documents
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
-
-      {analysisError && (
-        <div className="p-4 bg-danger-soft border border-destructive/30 rounded-xl text-xs text-destructive flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="size-4 shrink-0" />
-            <span>{analysisError}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link
-              to="/admin"
-              className="px-3 py-1 font-semibold bg-accent text-accent-foreground rounded-lg hover:opacity-90 inline-block text-center"
-            >
-              Reset quota in Admin
-            </Link>
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="px-3 py-1 font-semibold bg-danger text-destructive-foreground rounded-lg"
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-      )}
     </main>
   );
 };

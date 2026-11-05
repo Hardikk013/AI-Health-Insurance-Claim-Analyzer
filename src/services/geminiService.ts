@@ -1,14 +1,12 @@
-import { GoogleGenAI } from '@google/genai';
-import { ClaimCase, ComparisonItem, PolicyClause, StatedRejectionReason, VerdictType } from '../types';
+import { ComparisonItem, PolicyClause, StatedRejectionReason, VerdictType } from '../types';
 
-const defaultGeminiApiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-
+// Zero-Trust Security: Gemini API keys are strictly kept server-side in backend environment
 export const getGeminiApiKey = (): string => {
-  return localStorage.getItem('claimfight_gemini_api_key') || defaultGeminiApiKey;
+  return '';
 };
 
-export const setGeminiApiKey = (key: string): void => {
-  localStorage.setItem('claimfight_gemini_api_key', key.trim());
+export const setGeminiApiKey = (_key: string): void => {
+  // Deprecated: API keys are managed exclusively server-side via POST /api/admin/config
 };
 
 export interface GeminiDocumentVerificationResult {
@@ -58,6 +56,7 @@ export const verifyDocumentsWithGemini = async (params: {
   // If a live Gemini API key is configured, invoke the live Google GenAI SDK!
   if (apiKey && !apiKey.includes('mock') && apiKey.length > 10) {
     try {
+      const { GoogleGenAI } = await import('@google/genai');
       const ai = new GoogleGenAI({ apiKey });
 
       // Convert files to base64 if they are browser File instances

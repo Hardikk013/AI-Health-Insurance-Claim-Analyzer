@@ -161,6 +161,19 @@ export interface ClaimCase {
   ombudsman_verification?: any;
   missing_information?: string[];
   warnings?: string[];
+
+  // Requirement 7 fields
+  executive_summary?: string;
+  claim_decision_assessment?: string;
+  rejection_reason?: string;
+  relevant_policy_clauses?: any[];
+  evidence_by_document?: any;
+  timeline_comparison?: any;
+  financial_breakdown?: any;
+  missing_documents?: string[];
+  potential_grounds_for_appeal?: any[];
+  recommended_next_steps?: any[];
+  confidence_and_limitations?: any;
 }
 
 export interface SampleCaseDefinition {
